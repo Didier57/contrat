@@ -88,6 +88,29 @@ router.put('/profile', requireAuth, (req, res) => {
   res.json({ id: user.id, username: newUsername, role: user.role, email: newEmail });
 });
 
+// Préférences d'affichage propres à l'utilisateur (ordre/visibilité des colonnes…).
+// Stockées côté serveur pour suivre l'utilisateur d'un poste/navigateur à l'autre.
+router.get('/preferences', requireAuth, (req, res) => {
+  const row = db.prepare('SELECT preferences FROM users WHERE id = ?').get(req.user.id);
+  let prefs = {};
+  if (row && row.preferences) {
+    try { prefs = JSON.parse(row.preferences) || {}; } catch { prefs = {}; }
+  }
+  res.json(prefs);
+});
+
+router.put('/preferences', requireAuth, (req, res) => {
+  const body = req.body;
+  if (!body || typeof body !== 'object' || Array.isArray(body)) {
+    return res.status(400).json({ error: 'Préférences invalides' });
+  }
+  let json;
+  try { json = JSON.stringify(body); } catch { return res.status(400).json({ error: 'Préférences invalides' }); }
+  if (json.length > 50000) return res.status(413).json({ error: 'Préférences trop volumineuses' });
+  db.prepare('UPDATE users SET preferences = ? WHERE id = ?').run(json, req.user.id);
+  res.json({ ok: true });
+});
+
 // Mot de passe oublié : envoie un lien de réinitialisation si l'email existe
 router.post('/forgot-password', async (req, res) => {
   const { email } = req.body || {};

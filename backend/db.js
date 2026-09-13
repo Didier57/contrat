@@ -20,6 +20,7 @@ db.exec(`
     role TEXT NOT NULL DEFAULT 'lecteur',
     email TEXT,
     active INTEGER NOT NULL DEFAULT 1,
+    preferences TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -82,6 +83,9 @@ if (!userCols.some((c) => c.name === 'email')) {
 }
 if (!userCols.some((c) => c.name === 'active')) {
   db.exec('ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
+}
+if (!userCols.some((c) => c.name === 'preferences')) {
+  db.exec('ALTER TABLE users ADD COLUMN preferences TEXT');
 }
 
 // Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)

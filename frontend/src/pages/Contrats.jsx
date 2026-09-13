@@ -33,6 +33,20 @@ export function getCellLabel(col, key) {
   return key;
 }
 
+// Filtre les clés inconnues et les doublons (l'ordre est conservé tel quel).
+function sanitizeColumns(list) {
+  const known = new Set(FIELDS.map((f) => f.key));
+  return [...new Set((list || []).filter((k) => known.has(k)))];
+}
+
+// Normalise un ancien réglage local : Customer Name était toujours affiché en tête.
+function normalizeLegacyColumns(list) {
+  const uniq = sanitizeColumns(list);
+  const i = uniq.indexOf('customer_name');
+  if (i > 0) { uniq.splice(i, 1); uniq.unshift('customer_name'); }
+  return uniq.length ? uniq : DEFAULT_VISIBLE;
+}
+
 export default function Contrats() {
   const { user } = useAuth();
   const canEdit = user?.role === 'admin' || user?.role === 'editeur';
@@ -44,21 +58,47 @@ export default function Contrats() {
   const [visible, setVisible] = useState(() => {
     try {
       const saved = JSON.parse(localStorage.getItem('contrats-visible-cols'));
-      if (Array.isArray(saved) && saved.length) {
-        return saved.includes('remarks_bac') ? saved : [...saved, 'remarks_bac'];
-      }
-      return DEFAULT_VISIBLE;
-    } catch {
-      return DEFAULT_VISIBLE;
-    }
+      if (Array.isArray(saved) && saved.length) return normalizeLegacyColumns(saved);
+    } catch { /* ignore */ }
+    return DEFAULT_VISIBLE;
   });
+  const prefsRef = useRef({});
   const COLUMNS = useMemo(() => {
-    const cols = FIELDS.filter((f) => visible.includes(f.key));
-    const i = cols.findIndex((c) => c.key === 'customer_name');
-    if (i < 1) return cols; // déjà en premier (ou invisible)
-    const cust = cols[i];
-    return [cust, ...cols.slice(0, i), ...cols.slice(i + 1)]; // Customer Name toujours en tête
+    const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
+    return visible.map((k) => byKey[k]).filter(Boolean);
   }, [visible]);
+
+  function persistColumns(next) {
+    prefsRef.current = { ...prefsRef.current, columns: next };
+    try { localStorage.setItem('contrats-visible-cols', JSON.stringify(next)); } catch { /* ignore */ }
+    api.put('/auth/preferences', prefsRef.current).catch(() => { /* ignore */ });
+  }
+
+  // Préférences serveur : elles priment sur le stockage local du navigateur.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const prefs = await api.get('/auth/preferences');
+        if (cancelled) return;
+        prefsRef.current = prefs && typeof prefs === 'object' && !Array.isArray(prefs) ? prefs : {};
+        if (Array.isArray(prefs.columns) && prefs.columns.length) {
+          setVisible(sanitizeColumns(prefs.columns));
+          return;
+        }
+      } catch { /* ignore */ }
+      // Aucune préférence serveur : reprend le stockage local et le migre côté serveur.
+      try {
+        const saved = JSON.parse(localStorage.getItem('contrats-visible-cols'));
+        if (Array.isArray(saved) && saved.length) {
+          const norm = normalizeLegacyColumns(saved);
+          if (!cancelled) { setVisible(norm); persistColumns(norm); }
+        }
+      } catch { /* ignore */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const [search, setSearch] = useState('');
   const [colFilters, setColFilters] = useState({ contract_stop: ['0'] }); // Par défaut : contrat non stoppés
@@ -290,14 +330,18 @@ export default function Contrats() {
   }
 
   function onColumnsApply(next) {
+    const cols = sanitizeColumns(next);
+    const finalCols = cols.length ? cols : DEFAULT_VISIBLE;
+    setVisible(finalCols);
+    persistColumns(finalCols);
     setColFilters((f) => {
       const o = { ...f };
-      for (const k of Object.keys(o)) if (!next.includes(k)) delete o[k];
+      for (const k of Object.keys(o)) if (!finalCols.includes(k)) delete o[k];
       return o;
     });
     setDateRanges((d) => {
       const o = { ...d };
-      for (const k of Object.keys(o)) if (!next.includes(k)) delete o[k];
+      for (const k of Object.keys(o)) if (!finalCols.includes(k)) delete o[k];
       return o;
     });
   }
@@ -491,7 +535,7 @@ export default function Contrats() {
         />
       )}
       {pickerOpen && (
-        <ColumnsPicker onClose={() => setPickerOpen(false)} onApply={onColumnsApply} />
+        <ColumnsPicker current={visible} onClose={() => setPickerOpen(false)} onApply={onColumnsApply} />
       )}
       {editing && canEdit && (
         <ContractForm
