@@ -227,7 +227,7 @@ function syncRemarksMirror(contractId) {
 }
 
 // DELETE /api/contracts/:id
-router.delete('/:id', requireEditor, (req, res) => {
+router.delete('/:id', requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
   db.prepare('DELETE FROM contracts WHERE id = ?').run(req.params.id);

@@ -50,6 +50,7 @@ function normalizeLegacyColumns(list) {
 export default function Contrats() {
   const { user } = useAuth();
   const canEdit = user?.role === 'admin' || user?.role === 'editeur';
+  const canDelete = user?.role === 'admin';
 
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -502,7 +503,9 @@ export default function Contrats() {
                     {canEdit && (
                       <td className="row-actions col-sticky col-actions">
                         <button className="btn btn-xs btn-ghost" onClick={() => setEditing(r)} title="Modifier"><Pencil size={13} /></button>
-                        <button className="btn btn-xs btn-danger" onClick={() => setConfirmDelete(r)} title="Supprimer"><Trash2 size={13} /></button>
+                        {canDelete && (
+                          <button className="btn btn-xs btn-danger" onClick={() => setConfirmDelete(r)} title="Supprimer"><Trash2 size={13} /></button>
+                        )}
                       </td>
                     )}
                     {COLUMNS.map((c) => {
@@ -576,7 +579,7 @@ export default function Contrats() {
           }}
         />
       )}
-      {confirmDelete && canEdit && (
+      {confirmDelete && canDelete && (
         <ConfirmDialog
           title="Supprimer ce contrat ?"
           message={`« ${confirmDelete.customer_name} » (${confirmDelete.sap_ewp || confirmDelete.sap_eupac || 'n° ' + confirmDelete.import_id}) sera définitivement supprimé. Cette action est irréversible.`}
