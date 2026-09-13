@@ -22,6 +22,9 @@ db.exec(`
     active INTEGER NOT NULL DEFAULT 1,
     preferences TEXT,
     notify_expiry INTEGER NOT NULL DEFAULT 0,
+    notify_expiry_days INTEGER NOT NULL DEFAULT 7,
+    notify_expiry_hour INTEGER NOT NULL DEFAULT 8,
+    notify_expiry_last TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -90,6 +93,15 @@ if (!userCols.some((c) => c.name === 'preferences')) {
 }
 if (!userCols.some((c) => c.name === 'notify_expiry')) {
   db.exec('ALTER TABLE users ADD COLUMN notify_expiry INTEGER NOT NULL DEFAULT 0');
+}
+if (!userCols.some((c) => c.name === 'notify_expiry_days')) {
+  db.exec('ALTER TABLE users ADD COLUMN notify_expiry_days INTEGER NOT NULL DEFAULT 7');
+}
+if (!userCols.some((c) => c.name === 'notify_expiry_hour')) {
+  db.exec('ALTER TABLE users ADD COLUMN notify_expiry_hour INTEGER NOT NULL DEFAULT 8');
+}
+if (!userCols.some((c) => c.name === 'notify_expiry_last')) {
+  db.exec('ALTER TABLE users ADD COLUMN notify_expiry_last TEXT');
 }
 
 // Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)

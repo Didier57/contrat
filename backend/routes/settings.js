@@ -1,7 +1,7 @@
 const express = require('express');
 const { requireAuth, requireAdmin } = require('../auth');
 const { getSetting, setSetting, getBool, getInt } = require('../settings');
-const { sendMail, smtpConfigured, sendExpiryReminder } = require('../mailer');
+const { sendMail, smtpConfigured } = require('../mailer');
 const { logAudit } = require('../audit');
 
 const router = express.Router();
@@ -23,9 +23,7 @@ router.get('/', (req, res) => {
     },
     smtpConfigured: smtpConfigured(),
     notify: {
-      login: getBool('notify.login', false),
-      expiryDays: getInt('notify.expiry_days', 7),
-      dailyHour: getInt('notify.daily_hour', 8)
+      login: getBool('notify.login', false)
     }
   });
 });
@@ -47,18 +45,10 @@ router.put('/', (req, res) => {
     if (v === undefined) return;
     setSetting(`notify.${k}`, v ? '1' : '0');
   });
-  if (notify && notify.expiryDays !== undefined) {
-    const d = parseInt(notify.expiryDays, 10);
-    setSetting('notify.expiry_days', Number.isNaN(d) ? 7 : Math.max(1, Math.min(365, d)));
-  }
-  if (notify && notify.dailyHour !== undefined) {
-    const h = parseInt(notify.dailyHour, 10);
-    setSetting('notify.daily_hour', Number.isNaN(h) ? 8 : Math.max(0, Math.min(23, h)));
-  }
 
   const sections = [];
   if (smtp && (smtp.host !== undefined || smtp.port !== undefined || smtp.secure !== undefined || smtp.user !== undefined || smtp.pass !== undefined || smtp.from !== undefined || smtp.from_name !== undefined)) sections.push('SMTP');
-  if (notify && (notify.login !== undefined || notify.expiryDays !== undefined || notify.dailyHour !== undefined)) sections.push('Notifications');
+  if (notify && notify.login !== undefined) sections.push('Notifications');
   logAudit({
     user: req.user,
     action: 'Modification des paramètres',
@@ -80,16 +70,6 @@ router.post('/test', async (req, res) => {
       html: '<p>Test réussi : votre configuration SMTP fonctionne correctement.</p>'
     });
     res.json({ ok: true });
-  } catch (err) {
-    res.status(400).json({ error: err.message });
-  }
-});
-
-// Envoi manuel du rappel des contrats expirant sous N jours
-router.post('/send-expiry', async (req, res) => {
-  try {
-    const result = await sendExpiryReminder({ force: true });
-    res.json({ ok: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

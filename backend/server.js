@@ -4,8 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const config = require('./config');
 const { seed, ensureDefaultAdmin } = require('./seed');
-const { sendExpiryReminder, isTodayDone, markTodayDone } = require('./mailer');
-const { getInt } = require('./settings');
+const { sendDueExpiryReminders } = require('./mailer');
 
 seed();
 ensureDefaultAdmin();
@@ -48,14 +47,10 @@ app.listen(config.PORT, () => {
   console.log(`API démarrée sur http://localhost:${config.PORT}`);
 });
 
-// Job quotidien : rappel automatique des contrats qui expirent
-// (vérifié toutes les 60 min ; exécuté une seule fois par jour à partir de notify.daily_hour)
+// Job horaire : rappel automatique des contrats qui expirent.
+// Chaque utilisateur abonné a sa propre heure (notify_expiry_hour) et son propre délai (notify_expiry_days).
 setInterval(() => {
-  if (isTodayDone()) return;
-  const hour = new Date().getHours();
-  if (hour < getInt('notify.daily_hour', 8)) return;
-  markTodayDone();
-  sendExpiryReminder({ force: false }).catch((err) =>
+  sendDueExpiryReminders().catch((err) =>
     console.error('[mailer] Échec rappel quotidien :', err.message)
   );
 }, 60 * 60 * 1000);

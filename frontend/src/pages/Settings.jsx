@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
-import { Save, Mail, Send, Settings2 } from 'lucide-react';
+import { Save, Mail, Settings2 } from 'lucide-react';
 
 const EMPTY = {
   smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', from_name: '' },
-  notify: { login: false, expiryDays: 7, dailyHour: 8 }
+  notify: { login: false }
 };
 
 export default function Settings() {
@@ -36,9 +36,7 @@ export default function Settings() {
           from_name: data.smtp.from_name || ''
         },
         notify: {
-          login: data.notify.login,
-          expiryDays: data.notify.expiryDays,
-          dailyHour: data.notify.dailyHour
+          login: data.notify.login
         }
       });
       setTestEmail(localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email || '' : '');
@@ -75,21 +73,6 @@ export default function Settings() {
     try {
       await api.post('/settings/test', { to: testEmail });
       showToast(`Email de test envoyé à ${testEmail || 'vous'} — vérifiez votre boîte.`);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy('');
-    }
-  }
-
-  async function handleSendReminder(e) {
-    e.preventDefault();
-    setBusy('reminder');
-    setError('');
-    try {
-      const res = await api.post('/settings/send-expiry');
-      if (res.sent === 0) showToast(res.notice || 'Aucun contrat à signaler.');
-      else showToast(`Rappel envoyé : ${res.count} contrat(s) à ${res.recipients} admin(s).`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -224,41 +207,10 @@ export default function Settings() {
                 Notifier les admins à chaque connexion
               </label>
             </div>
-            <div className="form-row">
-              <div className="field">
-                <label>Nombre de jours avant expiration</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="365"
-                  value={form.notify.expiryDays}
-                  onChange={(e) => setNotify('expiryDays', parseInt(e.target.value, 10) || 7)}
-                />
-              </div>
-              <div className="field">
-                <label>Heure d'envoi quotidienne</label>
-                <input
-                  type="number"
-                  min="0"
-                  max="23"
-                  value={form.notify.dailyHour}
-                  onChange={(e) => setNotify('dailyHour', parseInt(e.target.value, 10) || 8)}
-                />
-              </div>
-            </div>
-            <div className="panel-sub">Le rappel est envoyé automatiquement chaque jour aux administrateurs et éditeurs qui l'ont activé depuis leur profil.</div>
+            <div className="panel-sub">Chaque administrateur ou éditeur règle ses propres rappels (activation, nombre de jours et heure d'envoi) depuis son profil.</div>
             <div className="panel-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 <Save size={14} /> {saving ? <span className="spinner" /> : 'Enregistrer'}
-              </button>
-              <button
-                type="button"
-                className="btn"
-                onClick={handleSendReminder}
-                disabled={busy === 'reminder'}
-                title="Envoyer immédiatement le rappel des expirations"
-              >
-                <Send size={14} /> {busy === 'reminder' ? <span className="spinner" /> : 'Envoyer le rappel maintenant'}
               </button>
             </div>
           </form>

@@ -77,16 +77,20 @@ function adminEmails() {
     .map((r) => r.email);
 }
 
-// Destinataires des rappels d'expiration = utilisateurs abonnés (admin/éditeur actifs)
-function expiryRecipients() {
+// Utilisateurs abonnés aux rappels (admin/éditeur actifs avec email) + leurs réglages
+function expirySubscribers() {
   return db
     .prepare(
-      `SELECT email FROM users
+      `SELECT id, email, notify_expiry_days, notify_expiry_hour, notify_expiry_last
+       FROM users
        WHERE notify_expiry = 1 AND active = 1 AND role IN ('admin', 'editeur')
          AND email IS NOT NULL AND email != ''`
     )
-    .all()
-    .map((r) => r.email);
+    .all();
+}
+
+function expiryRecipients() {
+  return expirySubscribers().map((r) => r.email);
 }
 
 // Email de notif de connexion → les autres admins (jamais l'utilisateur qui se connecte)
@@ -145,22 +149,8 @@ function expiringContracts(days) {
     .sort((a, b) => a.contract_end.localeCompare(b.contract_end));
 }
 
-// Rappel des expirations → les admins.
-async function sendExpiryReminder({ force = false } = {}) {
-  if (!smtpConfigured()) {
-    throw new Error('SMTP non configuré — renseignez l\'hôte, le port et l\'expéditeur dans Paramètres');
-  }
-  const recipients = expiryRecipients();
-  if (!recipients.length) {
-    throw new Error('Aucun utilisateur abonné aux rappels (admin/éditeur avec email) — activez-le dans votre profil');
-  }
-
-  const days = getInt('notify.expiry_days', 7);
-  const contracts = expiringContracts(days);
-  if (!contracts.length) {
-    return { recipients: recipients.length, notice: 'Aucun contrat à signaler dans les prochains jours', sent: 0 };
-  }
-
+// Corps HTML du rappel d'expiration (liste des contrats)
+function expiryEmailHtml(contracts, days) {
   const today = new Date().toLocaleDateString('fr-FR');
   const rows = contracts
     .map(
@@ -175,10 +165,7 @@ async function sendExpiryReminder({ force = false } = {}) {
     )
     .join('');
 
-  await sendMail({
-    to: recipients,
-    subject: `Contrats — ${contracts.length} contrat(s) expire(nt) dans les ${days} jours`,
-    html: `
+  return `
       <p>Bonjour,</p>
       <p>Voici les contrats qui expirent dans les <b>${days} prochains jours</b> (au ${today}) :</p>
       <table style="border-collapse:collapse;font-size:13px">
@@ -194,11 +181,49 @@ async function sendExpiryReminder({ force = false } = {}) {
         <tbody>${rows}</tbody>
       </table>
       <p style="color:#666">Application Contrats — ${escapeHtml(today)}</p>
-    `
-  });
+  `;
+}
 
-  console.log(`[mailer] Rappel d'expiration envoyé : ${contracts.length} contrat(s) → ${recipients.length} utilisateur(s)`);
-  return { recipients: recipients.length, count: contracts.length };
+// Rappel d'expiration → un utilisateur donné, selon SON nombre de jours
+async function sendExpiryReminderForUser(user) {
+  if (!smtpConfigured()) {
+    throw new Error('SMTP non configuré — renseignez l\'hôte, le port et l\'expéditeur dans Paramètres');
+  }
+  if (!user.email) {
+    throw new Error('Aucune adresse email — renseignez-la dans votre profil');
+  }
+  const days = Number(user.notify_expiry_days) > 0 ? Number(user.notify_expiry_days) : 7;
+  const contracts = expiringContracts(days);
+  if (!contracts.length) {
+    return { sent: 0, count: 0, days, notice: `Aucun contrat à signaler dans les ${days} prochains jours` };
+  }
+  await sendMail({
+    to: user.email,
+    subject: `Contrats — ${contracts.length} contrat(s) expire(nt) dans les ${days} jours`,
+    html: expiryEmailHtml(contracts, days)
+  });
+  console.log(`[mailer] Rappel d'expiration envoyé à ${user.email} : ${contracts.length} contrat(s)`);
+  return { sent: 1, count: contracts.length, days };
+}
+
+// Job horaire : envoie le rappel à chaque abonné dont l'heure est atteinte (une fois par jour)
+async function sendDueExpiryReminders() {
+  if (!smtpConfigured()) return { sent: 0 };
+  const hour = new Date().getHours();
+  const today = localToday();
+  let sent = 0;
+  for (const user of expirySubscribers()) {
+    if (Number(user.notify_expiry_hour ?? 8) > hour) continue;
+    if (user.notify_expiry_last === today) continue;
+    try {
+      await sendExpiryReminderForUser(user);
+      db.prepare('UPDATE users SET notify_expiry_last = ? WHERE id = ?').run(today, user.id);
+      sent++;
+    } catch (err) {
+      console.error(`[mailer] Échec rappel pour ${user.email}:`, err.message);
+    }
+  }
+  return { sent };
 }
 
 function escapeHtml(s) {
@@ -251,7 +276,8 @@ function markTodayDone() {
 module.exports = {
   sendMail,
   sendLoginNotification,
-  sendExpiryReminder,
+  sendExpiryReminderForUser,
+  sendDueExpiryReminders,
   sendPasswordEmailWithToken,
   adminEmails,
   expiryRecipients,

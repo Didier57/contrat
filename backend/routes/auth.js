@@ -1,8 +1,8 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const db = require('../db');
-const { sign, requireAuth } = require('../auth');
-const { sendLoginNotification, sendPasswordEmailWithToken, smtpConfigured } = require('../mailer');
+const { sign, requireAuth, requireEditor } = require('../auth');
+const { sendLoginNotification, sendPasswordEmailWithToken, sendExpiryReminderForUser, smtpConfigured } = require('../mailer');
 const { createResetToken, consumeResetToken } = require('../reset-token');
 const { logAudit } = require('../audit');
 
@@ -29,12 +29,20 @@ router.post('/login', (req, res) => {
   logAudit({ user, action: 'Connexion', category: 'login', target: user.username });
   res.json({
     token: sign(user),
-    user: { id: user.id, username: user.username, role: user.role, email: user.email, notify_expiry: user.notify_expiry === 1 }
+    user: {
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      email: user.email,
+      notify_expiry: user.notify_expiry === 1,
+      notify_expiry_days: user.notify_expiry_days ?? 7,
+      notify_expiry_hour: user.notify_expiry_hour ?? 8
+    }
   });
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, role, email, notify_expiry FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, role, email, notify_expiry, notify_expiry_days, notify_expiry_hour FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
   res.json({ ...user, notify_expiry: user.notify_expiry === 1 });
 });
@@ -44,7 +52,7 @@ router.put('/profile', requireAuth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
 
-  const { username, email, currentPassword, newPassword, notify_expiry } = req.body || {};
+  const { username, email, currentPassword, newPassword, notify_expiry, notify_expiry_days, notify_expiry_hour } = req.body || {};
 
   // Vérifier le mot de passe actuel si on veut en changer un
   if (newPassword) {
@@ -75,16 +83,34 @@ router.put('/profile', requireAuth, (req, res) => {
     newEmail = v || null;
   }
 
-  // Abonnement aux rappels d'expiration : réservé aux rôles admin et éditeur
+  // Rappels d'expiration : réservés aux rôles admin et éditeur, réglés par l'utilisateur lui-même
   const canReceive = user.role === 'admin' || user.role === 'editeur';
   let newNotifyExpiry = user.notify_expiry === 1;
   if (canReceive && notify_expiry !== undefined) {
     newNotifyExpiry = !!notify_expiry;
   }
+  let newNotifyDays = user.notify_expiry_days ?? 7;
+  if (canReceive && notify_expiry_days !== undefined) {
+    const d = parseInt(notify_expiry_days, 10);
+    if (!Number.isNaN(d)) newNotifyDays = Math.max(1, Math.min(365, d));
+  }
+  let newNotifyHour = user.notify_expiry_hour ?? 8;
+  if (canReceive && notify_expiry_hour !== undefined) {
+    const h = parseInt(notify_expiry_hour, 10);
+    if (!Number.isNaN(h)) newNotifyHour = Math.max(0, Math.min(23, h));
+  }
 
-  if (newUsername !== user.username || newEmail !== user.email || newPassword || newNotifyExpiry !== (user.notify_expiry === 1)) {
-    db.prepare('UPDATE users SET username = ?, email = ?, notify_expiry = ? WHERE id = ?')
-      .run(newUsername, newEmail, newNotifyExpiry ? 1 : 0, user.id);
+  const changed =
+    newUsername !== user.username ||
+    newEmail !== user.email ||
+    !!newPassword ||
+    newNotifyExpiry !== (user.notify_expiry === 1) ||
+    newNotifyDays !== (user.notify_expiry_days ?? 7) ||
+    newNotifyHour !== (user.notify_expiry_hour ?? 8);
+
+  if (changed) {
+    db.prepare('UPDATE users SET username = ?, email = ?, notify_expiry = ?, notify_expiry_days = ?, notify_expiry_hour = ? WHERE id = ?')
+      .run(newUsername, newEmail, newNotifyExpiry ? 1 : 0, newNotifyDays, newNotifyHour, user.id);
     if (newPassword) {
       db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(newPassword, 10), user.id);
     }
@@ -95,9 +121,30 @@ router.put('/profile', requireAuth, (req, res) => {
   if (newEmail !== user.email) changes.push('email');
   if (newPassword) changes.push('mot de passe');
   if (newNotifyExpiry !== (user.notify_expiry === 1)) changes.push('rappels d\'expiration');
+  if (newNotifyDays !== (user.notify_expiry_days ?? 7) || newNotifyHour !== (user.notify_expiry_hour ?? 8)) changes.push('réglage des rappels');
   logAudit({ user: req.user, action: 'Modification du profil', category: 'profile', target: newUsername, detail: changes.join(', ') || null });
 
-  res.json({ id: user.id, username: newUsername, role: user.role, email: newEmail, notify_expiry: newNotifyExpiry });
+  res.json({
+    id: user.id,
+    username: newUsername,
+    role: user.role,
+    email: newEmail,
+    notify_expiry: newNotifyExpiry,
+    notify_expiry_days: newNotifyDays,
+    notify_expiry_hour: newNotifyHour
+  });
+});
+
+// Envoi immédiat du rappel d'expiration à l'utilisateur connecté (selon son réglage)
+router.post('/profile/send-expiry', requireAuth, requireEditor, async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
+  try {
+    const result = await sendExpiryReminderForUser(user);
+    res.json({ ok: true, ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // Préférences d'affichage propres à l'utilisateur (ordre/visibilité des colonnes…).
