@@ -80,9 +80,9 @@ export default function Backup() {
           <DatabaseBackup size={16} /> Base de données complète
         </div>
         <p style={{ margin: '0 0 14px', color: 'var(--text-secondary)', fontSize: 13 }}>
-          Le fichier Excel contient un onglet par table (Contrats, Utilisateurs, Paramètres…).
-          Les fichiers de licence (contenu binaire) ne sont pas stockés dans Excel : leur liste est sauvegardée
-          mais le contenu ne peut pas être restauré depuis ce format.
+          Le fichier Excel contient un onglet par table (Contrats, Notes Remarks, Utilisateurs,
+          Paramètres, Journal d'activité). La restauration réimporte l'intégralité de ces onglets,
+          notes Remarks Bac comprises.
         </p>
         <div className="backup-actions">
           <button className="btn btn-primary" onClick={handleExport} disabled={!!busy}>

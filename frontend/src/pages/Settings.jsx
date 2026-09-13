@@ -89,8 +89,8 @@ export default function Settings() {
     setError('');
     try {
       const res = await api.post('/settings/send-expiry');
-      if (res.sent === 0) showToast(res.notice || 'Aucune licence à signaler.');
-      else showToast(`Rappel envoyé : ${res.count} licence(s) à ${res.recipients} admin(s).`);
+      if (res.sent === 0) showToast(res.notice || 'Aucun contrat à signaler.');
+      else showToast(`Rappel envoyé : ${res.count} contrat(s) à ${res.recipients} admin(s).`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -232,7 +232,7 @@ export default function Settings() {
                   checked={form.notify.expiry}
                   onChange={(e) => setNotify('expiry', e.target.checked)}
                 />
-                Rappel automatique des licences qui expirent
+                Rappel automatique des contrats qui expirent
               </label>
             </div>
             <div className="form-row">

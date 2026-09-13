@@ -2,8 +2,10 @@ const XLSX = require('xlsx');
 const db = require('./db');
 
 // Tables exportées dans le classeur Excel (un onglet par table).
+// L'ordre compte : contracts avant contract_remarks (clé étrangère).
 const TABLES = [
   { name: 'contracts', exclude: [] },
+  { name: 'contract_remarks', exclude: [] },
   { name: 'users', exclude: [] },
   { name: 'settings', exclude: [] },
   { name: 'activity_log', exclude: [] }
@@ -73,6 +75,11 @@ function importBackup(buffer) {
     }
   });
   tx();
+
+  // Anciennes sauvegardes (sans onglet `contract_remarks`) : reconstruit les notes
+  // « sans date » à partir de la colonne `remarks_bac` (une note par ligne).
+  // Idempotent : ne touche pas les contrats ayant déjà des notes datées.
+  if (typeof db.migrateLegacyRemarks === 'function') db.migrateLegacyRemarks();
 
   // Garde-fou : on ne restaure jamais une base sans administrateur.
   const adminsAfter = db.prepare(`SELECT id FROM users WHERE role = 'admin'`).all();
