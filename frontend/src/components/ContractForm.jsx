@@ -10,7 +10,8 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     const init = {};
     for (const f of FIELDS) {
       let v = contract[f.key] ?? '';
-      if (f.type === 'date' && v && typeof v === 'string' && v.includes('-')) v = v.slice(0, 10);
+      if (f.bool) v = Number(v) === 1;
+      else if (f.type === 'date' && v && typeof v === 'string' && v.includes('-')) v = v.slice(0, 10);
       init[f.key] = v;
     }
     return init;
@@ -33,7 +34,9 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     const body = {};
     for (const f of FIELDS) {
       let v = form[f.key];
-      if (v === '' || v == null) {
+      if (f.bool) {
+        body[f.key] = v ? 1 : 0;
+      } else if (v === '' || v == null) {
         body[f.key] = null;
       } else if (f.type === 'int' || f.type === 'real') {
         body[f.key] = Number(v);
@@ -72,7 +75,16 @@ export default function ContractForm({ contract, onClose, onSaved }) {
               return (
                 <div className={`field ${FULL_WIDTH.includes(f.key) ? 'full' : ''}`} key={f.key}>
                   <label>{f.label}{f.key === 'customer_name' ? ' *' : ''}</label>
-                  {(f.type === 'real' || f.type === 'int') && !blank ? (
+                  {f.bool ? (
+                    <div className="check-field">
+                      <input
+                        type="checkbox"
+                        checked={!!form[f.key]}
+                        onChange={(e) => update(f.key, e.target.checked)}
+                      />
+                      <span>Oui</span>
+                    </div>
+                  ) : (f.type === 'real' || f.type === 'int') && !blank ? (
                     <div className="set-value">
                       <input
                         type="number"

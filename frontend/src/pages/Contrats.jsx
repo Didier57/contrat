@@ -14,6 +14,7 @@ const MOIS = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep'
 
 export function getCellKey(r, col) {
   const v = r[col.key];
+  if (col.bool) return Number(v) === 1 ? '1' : '0';
   if (col.type === 'date') {
     if (!v) return '__EMPTY__';
     return v.slice(0, 7);
@@ -24,6 +25,7 @@ export function getCellKey(r, col) {
 
 export function getCellLabel(col, key) {
   if (key === '__EMPTY__') return '(vide)';
+  if (col.bool) return key === '1' ? 'Oui' : 'Non';
   if (col.type === 'date') {
     const [y, m] = key.split('-');
     return `${MOIS[Number(m) - 1]} ${y}`;
@@ -185,7 +187,7 @@ export default function Contrats() {
     arr.sort((a, b) => {
       const col = FIELDS.find((f) => f.key === sortKey) || {};
       let va, vb;
-      if (col.type === 'int' || col.type === 'real') {
+      if (col.type === 'int' || col.type === 'real' || col.bool) {
         va = Number(a[sortKey]) || 0; vb = Number(b[sortKey]) || 0;
         return (va - vb) * (sortDir === 'asc' ? 1 : -1);
       }
@@ -259,6 +261,16 @@ export default function Contrats() {
   function showToast(msg) {
     setToast(msg);
     setTimeout(() => setToast(''), 2500);
+  }
+
+  async function toggleBool(row, key) {
+    const next = Number(row[key]) === 1 ? 0 : 1;
+    try {
+      await api.put(`/contracts/${row.id}`, { [key]: next });
+      setAllRows((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: next } : r)));
+    } catch (e) {
+      showToast(e.message);
+    }
   }
 
   async function handleDelete() {
@@ -381,7 +393,7 @@ export default function Contrats() {
                     (Array.isArray(colFilters[c.key]) && colFilters[c.key].length > 0) ||
                     !!(dateRanges[c.key] && (dateRanges[c.key].from || dateRanges[c.key].to));
                   return (
-                    <th key={c.key} style={{ width: colWidths[c.key], textAlign: c.type === 'int' || c.type === 'real' && c.key !== 'amount' ? 'center' : 'left' }} onClick={() => { if (!dragRef.current) onSort(c.key); }}>
+                    <th key={c.key} style={{ width: colWidths[c.key], textAlign: (c.bool || c.type === 'int' || c.type === 'real') ? 'center' : 'left' }} onClick={() => { if (!dragRef.current) onSort(c.key); }}>
                       <span className="th-label">{c.label}</span>
                       <span className="th-meta">
                         <span className="th-sort">{sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}</span>
@@ -439,16 +451,24 @@ export default function Contrats() {
                       const v = r[c.key];
                       let content;
                       let className = '';
-                      if (c.type === 'date') {
+                      if (c.bool) {
+                        content = (
+                          <input
+                            type="checkbox"
+                            checked={Number(v) === 1}
+                            disabled={!isAdmin}
+                            title={Number(v) === 1 ? 'Oui' : 'Non'}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => toggleBool(r, c.key)}
+                          />
+                        );
+                        className = 'cell-check text-center';
+                      } else if (c.type === 'date') {
                         content = formatDate(v);
                         className = c.key === 'contract_end' ? cellDateClass : '';
                       } else if (c.type === 'int' || c.type === 'real') {
                         content = v == null || v === '' ? '—' : Number(v).toLocaleString('fr-FR', { maximumFractionDigits: 2 });
                         className = 'text-right';
-                      } else if (c.key === 'contract_stop') {
-                        content = Number(v) === 1 ? <span className="badge badge-red">STOP</span> : (v == null || v === '' ? '—' : <span className="badge badge-gray">0</span>);
-                      } else if (c.key === 'phone_include' || c.key === 'remote' || c.key === 'ga' || c.key === 'billing') {
-                        content = v == null || v === '' ? '—' : String(v);
                       } else {
                         content = v == null || v === '' ? '—' : String(v);
                       }

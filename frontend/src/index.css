@@ -1156,6 +1156,24 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
 .set-value input { flex: 1; }
 .set-value .btn { flex: none; }
 
+/* Cases à cocher : table + formulaire */
+.cell-check { text-align: center; }
+.cell-check input, .check-field input {
+  width: 15px;
+  height: 15px;
+  cursor: pointer;
+  accent-color: #1d4ed8;
+  vertical-align: middle;
+}
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+}
+.check-field span { font-size: 13px; color: var(--muted); }
+.text-center { text-align: center; }
+
 @media (max-width: 1100px) {
   table.table { min-width: 100%; }
 }
