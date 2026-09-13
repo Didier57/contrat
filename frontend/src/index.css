@@ -1248,14 +1248,14 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
   padding: 20px;
   z-index: 70;
 }
-.modal-sm { max-width: 480px; }
+.modal-sm { max-width: 760px; width: 90vw; }
 .note-dialog-body {
   padding: 18px 24px;
   display: block;
 }
 .note-dialog-body textarea {
   width: 100%;
-  min-height: 120px;
+  min-height: 300px;
   padding: 8px 10px;
   border: 1px solid var(--border);
   border-radius: 8px;
