@@ -77,11 +77,31 @@ function adminEmails() {
     .map((r) => r.email);
 }
 
-// Email de notif de connexion → les admins
-async function sendLoginNotification(username, role) {
+// Destinataires des rappels d'expiration = utilisateurs abonnés (admin/éditeur actifs)
+function expiryRecipients() {
+  return db
+    .prepare(
+      `SELECT email FROM users
+       WHERE notify_expiry = 1 AND active = 1 AND role IN ('admin', 'editeur')
+         AND email IS NOT NULL AND email != ''`
+    )
+    .all()
+    .map((r) => r.email);
+}
+
+// Email de notif de connexion → les autres admins (jamais l'utilisateur qui se connecte)
+async function sendLoginNotification(user) {
   if (!getBool('notify.login', false)) return;
-  const recipients = adminEmails();
+  const recipients = db
+    .prepare(
+      `SELECT email FROM users
+       WHERE role = 'admin' AND id != ? AND email IS NOT NULL AND email != ''`
+    )
+    .all(user.id)
+    .map((r) => r.email);
   if (!recipients.length) return;
+  const username = user.username;
+  const role = user.role;
   const moment = new Date().toLocaleString('fr-FR');
   try {
     await sendMail({
@@ -130,9 +150,9 @@ async function sendExpiryReminder({ force = false } = {}) {
   if (!smtpConfigured()) {
     throw new Error('SMTP non configuré — renseignez l\'hôte, le port et l\'expéditeur dans Paramètres');
   }
-  const recipients = adminEmails();
+  const recipients = expiryRecipients();
   if (!recipients.length) {
-    throw new Error('Aucun administrateur avec une adresse email — impossible d\'envoyer le rappel');
+    throw new Error('Aucun utilisateur abonné aux rappels (admin/éditeur avec email) — activez-le dans votre profil');
   }
 
   const days = getInt('notify.expiry_days', 7);
@@ -177,7 +197,7 @@ async function sendExpiryReminder({ force = false } = {}) {
     `
   });
 
-  console.log(`[mailer] Rappel d'expiration envoyé : ${contracts.length} contrat(s) → ${recipients.length} admin(s)`);
+  console.log(`[mailer] Rappel d'expiration envoyé : ${contracts.length} contrat(s) → ${recipients.length} utilisateur(s)`);
   return { recipients: recipients.length, count: contracts.length };
 }
 
@@ -234,6 +254,7 @@ module.exports = {
   sendExpiryReminder,
   sendPasswordEmailWithToken,
   adminEmails,
+  expiryRecipients,
   smtpConfigured,
   getSmtpConfig,
   isTodayDone,

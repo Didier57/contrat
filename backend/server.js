@@ -5,7 +5,7 @@ const fs = require('fs');
 const config = require('./config');
 const { seed, ensureDefaultAdmin } = require('./seed');
 const { sendExpiryReminder, isTodayDone, markTodayDone } = require('./mailer');
-const { getBool, getInt } = require('./settings');
+const { getInt } = require('./settings');
 
 seed();
 ensureDefaultAdmin();
@@ -51,7 +51,6 @@ app.listen(config.PORT, () => {
 // Job quotidien : rappel automatique des contrats qui expirent
 // (vérifié toutes les 60 min ; exécuté une seule fois par jour à partir de notify.daily_hour)
 setInterval(() => {
-  if (!getBool('notify.expiry', false)) return;
   if (isTodayDone()) return;
   const hour = new Date().getHours();
   if (hour < getInt('notify.daily_hour', 8)) return;

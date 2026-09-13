@@ -4,7 +4,7 @@ import { Save, Mail, Send, Settings2 } from 'lucide-react';
 
 const EMPTY = {
   smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', from_name: '' },
-  notify: { login: false, expiry: false, expiryDays: 7, dailyHour: 8 }
+  notify: { login: false, expiryDays: 7, dailyHour: 8 }
 };
 
 export default function Settings() {
@@ -37,7 +37,6 @@ export default function Settings() {
         },
         notify: {
           login: data.notify.login,
-          expiry: data.notify.expiry,
           expiryDays: data.notify.expiryDays,
           dailyHour: data.notify.dailyHour
         }
@@ -225,16 +224,6 @@ export default function Settings() {
                 Notifier les admins à chaque connexion
               </label>
             </div>
-            <div className="field field-check">
-              <label className="check-label">
-                <input
-                  type="checkbox"
-                  checked={form.notify.expiry}
-                  onChange={(e) => setNotify('expiry', e.target.checked)}
-                />
-                Rappel automatique des contrats qui expirent
-              </label>
-            </div>
             <div className="form-row">
               <div className="field">
                 <label>Nombre de jours avant expiration</label>
@@ -257,7 +246,7 @@ export default function Settings() {
                 />
               </div>
             </div>
-            <div className="panel-sub">Les emails partent vers l'adresse de chaque administrateur.</div>
+            <div className="panel-sub">Le rappel est envoyé automatiquement chaque jour aux administrateurs et éditeurs qui l'ont activé depuis leur profil.</div>
             <div className="panel-actions">
               <button type="submit" className="btn btn-primary" disabled={saving}>
                 <Save size={14} /> {saving ? <span className="spinner" /> : 'Enregistrer'}

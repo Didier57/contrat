@@ -8,10 +8,12 @@ export default function ProfileModal({ onClose }) {
   const [form, setForm] = useState({
     username: user?.username || '',
     email: user?.email || '',
+    notify_expiry: !!user?.notify_expiry,
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
   });
+  const canReceive = user?.role === 'admin' || user?.role === 'editeur';
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState('');
@@ -27,12 +29,13 @@ export default function ProfileModal({ onClose }) {
     setSaving(true);
     try {
       const body = { username: form.username.trim(), email: form.email.trim() || null };
+      if (canReceive) body.notify_expiry = !!form.notify_expiry;
       if (form.newPassword) {
         body.currentPassword = form.currentPassword;
         body.newPassword = form.newPassword;
       }
       const updated = await api.put('/auth/profile', body);
-      updateUser({ ...user, username: updated.username, email: updated.email });
+      updateUser({ ...user, username: updated.username, email: updated.email, notify_expiry: updated.notify_expiry });
       setForm((f) => ({ ...f, currentPassword: '', newPassword: '', confirmPassword: '' }));
       setDone('Profil mis à jour.');
       setTimeout(onClose, 1200);
@@ -70,6 +73,19 @@ export default function ProfileModal({ onClose }) {
                 placeholder="nom@entreprise.com"
               />
             </div>
+            {canReceive && (
+              <div className="field field-check">
+                <label className="check-label">
+                  <input
+                    type="checkbox"
+                    checked={!!form.notify_expiry}
+                    onChange={(e) => setForm({ ...form, notify_expiry: e.target.checked })}
+                  />
+                  Recevoir les rappels automatiques des contrats qui expirent
+                </label>
+                <span className="field-hint">Un email liste les contrats arrivant à échéance.</span>
+              </div>
+            )}
             <div className="field">
               <label>Mot de passe actuel <span className="field-hint">(pour changer le mot de passe)</span></label>
               <input

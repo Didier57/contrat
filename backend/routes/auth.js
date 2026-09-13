@@ -24,16 +24,19 @@ router.post('/login', (req, res) => {
     logAudit({ username: user.username, action: 'Tentative de connexion (compte désactivé)', category: 'login' });
     return res.status(401).json({ error: 'Compte désactivé — contactez un administrateur' });
   }
-  // Notification de connexion aux admins (si activée) — non bloquant
-  sendLoginNotification(user.username, user.role);
+  // Notification de connexion aux autres admins (si activée) — non bloquant
+  sendLoginNotification(user);
   logAudit({ user, action: 'Connexion', category: 'login', target: user.username });
-  res.json({ token: sign(user), user: { id: user.id, username: user.username, role: user.role, email: user.email } });
+  res.json({
+    token: sign(user),
+    user: { id: user.id, username: user.username, role: user.role, email: user.email, notify_expiry: user.notify_expiry === 1 }
+  });
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, role, email FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, role, email, notify_expiry FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
-  res.json(user);
+  res.json({ ...user, notify_expiry: user.notify_expiry === 1 });
 });
 
 // L'utilisateur modifie ses propres informations (username, email, mot de passe)
@@ -41,7 +44,7 @@ router.put('/profile', requireAuth, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
 
-  const { username, email, currentPassword, newPassword } = req.body || {};
+  const { username, email, currentPassword, newPassword, notify_expiry } = req.body || {};
 
   // Vérifier le mot de passe actuel si on veut en changer un
   if (newPassword) {
@@ -72,8 +75,16 @@ router.put('/profile', requireAuth, (req, res) => {
     newEmail = v || null;
   }
 
-  if (newUsername !== user.username || newEmail !== user.email || newPassword) {
-    db.prepare('UPDATE users SET username = ?, email = ? WHERE id = ?').run(newUsername, newEmail, user.id);
+  // Abonnement aux rappels d'expiration : réservé aux rôles admin et éditeur
+  const canReceive = user.role === 'admin' || user.role === 'editeur';
+  let newNotifyExpiry = user.notify_expiry === 1;
+  if (canReceive && notify_expiry !== undefined) {
+    newNotifyExpiry = !!notify_expiry;
+  }
+
+  if (newUsername !== user.username || newEmail !== user.email || newPassword || newNotifyExpiry !== (user.notify_expiry === 1)) {
+    db.prepare('UPDATE users SET username = ?, email = ?, notify_expiry = ? WHERE id = ?')
+      .run(newUsername, newEmail, newNotifyExpiry ? 1 : 0, user.id);
     if (newPassword) {
       db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(bcrypt.hashSync(newPassword, 10), user.id);
     }
@@ -83,9 +94,10 @@ router.put('/profile', requireAuth, (req, res) => {
   if (newUsername !== user.username) changes.push('nom d\'utilisateur');
   if (newEmail !== user.email) changes.push('email');
   if (newPassword) changes.push('mot de passe');
+  if (newNotifyExpiry !== (user.notify_expiry === 1)) changes.push('rappels d\'expiration');
   logAudit({ user: req.user, action: 'Modification du profil', category: 'profile', target: newUsername, detail: changes.join(', ') || null });
 
-  res.json({ id: user.id, username: newUsername, role: user.role, email: newEmail });
+  res.json({ id: user.id, username: newUsername, role: user.role, email: newEmail, notify_expiry: newNotifyExpiry });
 });
 
 // Préférences d'affichage propres à l'utilisateur (ordre/visibilité des colonnes…).

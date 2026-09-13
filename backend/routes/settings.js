@@ -24,7 +24,6 @@ router.get('/', (req, res) => {
     smtpConfigured: smtpConfigured(),
     notify: {
       login: getBool('notify.login', false),
-      expiry: getBool('notify.expiry', false),
       expiryDays: getInt('notify.expiry_days', 7),
       dailyHour: getInt('notify.daily_hour', 8)
     }
@@ -43,7 +42,7 @@ router.put('/', (req, res) => {
     setSetting(`smtp.${k}`, boolKeys.includes(k) ? (v ? '1' : '0') : v);
   });
 
-  ['login', 'expiry'].forEach((k) => {
+  ['login'].forEach((k) => {
     const v = notify && notify[k];
     if (v === undefined) return;
     setSetting(`notify.${k}`, v ? '1' : '0');
@@ -59,7 +58,7 @@ router.put('/', (req, res) => {
 
   const sections = [];
   if (smtp && (smtp.host !== undefined || smtp.port !== undefined || smtp.secure !== undefined || smtp.user !== undefined || smtp.pass !== undefined || smtp.from !== undefined || smtp.from_name !== undefined)) sections.push('SMTP');
-  if (notify && (notify.login !== undefined || notify.expiry !== undefined || notify.expiryDays !== undefined || notify.dailyHour !== undefined)) sections.push('Notifications');
+  if (notify && (notify.login !== undefined || notify.expiryDays !== undefined || notify.dailyHour !== undefined)) sections.push('Notifications');
   logAudit({
     user: req.user,
     action: 'Modification des paramètres',
@@ -89,9 +88,6 @@ router.post('/test', async (req, res) => {
 // Envoi manuel du rappel des contrats expirant sous N jours
 router.post('/send-expiry', async (req, res) => {
   try {
-    if (!getBool('notify.expiry', false)) {
-      return res.status(400).json({ error: 'Le rappel automatique est désactivé (activez-le dans Paramètres)' });
-    }
     const result = await sendExpiryReminder({ force: true });
     res.json({ ok: true, ...result });
   } catch (err) {

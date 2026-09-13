@@ -21,6 +21,7 @@ db.exec(`
     email TEXT,
     active INTEGER NOT NULL DEFAULT 1,
     preferences TEXT,
+    notify_expiry INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -86,6 +87,9 @@ if (!userCols.some((c) => c.name === 'active')) {
 }
 if (!userCols.some((c) => c.name === 'preferences')) {
   db.exec('ALTER TABLE users ADD COLUMN preferences TEXT');
+}
+if (!userCols.some((c) => c.name === 'notify_expiry')) {
+  db.exec('ALTER TABLE users ADD COLUMN notify_expiry INTEGER NOT NULL DEFAULT 0');
 }
 
 // Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)
