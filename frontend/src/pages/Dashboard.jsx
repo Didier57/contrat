@@ -9,6 +9,20 @@ import { formatDate, daysUntil } from '../utils.js';
 
 const COLORS = ['#1d4ed8', '#7c3aed', '#16a34a', '#d97706', '#dc2626', '#0891b2', '#db2777', '#65a30d'];
 
+// Couleur fixe par type de contrat (identique dans les deux graphiques),
+// quel que soit l'ordre (nombre ou montant) renvoyé par l'API.
+const TYPE_COLORS = {
+  Maintenance: '#1d4ed8',
+  Rental: '#7c3aed',
+  'Managed Services': '#16a34a'
+};
+const hashKey = (s) => {
+  let h = 0;
+  for (let i = 0; i < String(s).length; i += 1) h = (h * 31 + String(s).charCodeAt(i)) >>> 0;
+  return h;
+};
+const typeColor = (key) => TYPE_COLORS[key] || COLORS[hashKey(key) % COLORS.length];
+
 const MOIS = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
 const fmtMois = (m) => {
   const [y, mm] = String(m).split('-');
@@ -78,7 +92,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={data.byType} dataKey="value" nameKey="key" cx="50%" cy="50%" outerRadius={95} label={PieLabel} labelLine={false}>
-                {data.byType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {data.byType.map((d) => <Cell key={d.key} fill={typeColor(d.key)} />)}
               </Pie>
               <Tooltip />
               <Legend />
@@ -91,7 +105,7 @@ export default function Dashboard() {
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie data={data.amountByType} dataKey="value" nameKey="key" cx="50%" cy="50%" outerRadius={95} label={PieLabel} labelLine={false}>
-                {data.amountByType.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {data.amountByType.map((d) => <Cell key={d.key} fill={typeColor(d.key)} />)}
               </Pie>
               <Tooltip />
               <Legend />
