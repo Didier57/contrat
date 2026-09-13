@@ -30,6 +30,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
   const [error, setError] = useState('');
   const [notes, setNotes] = useState([]);
   const [notesLoading, setNotesLoading] = useState(false);
+  const [noteDialog, setNoteDialog] = useState(null);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -52,11 +53,21 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     }
   }
 
-  async function addNote() {
-    const text = window.prompt('Nouvelle note Remarks Bac :', '');
-    if (!text || !text.trim()) return;
+  async function saveNote() {
+    const dialog = noteDialog;
+    const text = String(dialog.text || '').trim();
+    if (!text) {
+      setError('La note ne peut pas être vide.');
+      return;
+    }
     try {
-      await api.post(`/contracts/${contract.id}/remarks`, { text: text.trim() });
+      if (dialog.mode === 'edit') {
+        await api.put(`/contracts/${contract.id}/remarks/${dialog.note.id}`, { text });
+      } else {
+        await api.post(`/contracts/${contract.id}/remarks`, { text });
+      }
+      setNoteDialog(null);
+      setError('');
       refreshNotes();
     } catch (err) {
       setError(err.message);
@@ -64,14 +75,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
   }
 
   async function editNote(note) {
-    const text = window.prompt('Modifier la note :', note.text);
-    if (text === null || !text.trim()) return;
-    try {
-      await api.put(`/contracts/${contract.id}/remarks/${note.id}`, { text: text.trim() });
-      refreshNotes();
-    } catch (err) {
-      setError(err.message);
-    }
+    setNoteDialog({ mode: 'edit', note, text: note.text });
   }
 
   async function deleteNote(note) {
@@ -154,7 +158,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                       <button
                         type="button"
                         className="btn btn-xs btn-ghost"
-                        onClick={addNote}
+                        onClick={() => setNoteDialog({ mode: 'add', text: '' })}
                         title="Ajouter une note"
                       ><Plus size={13} /> Ajouter une note</button>
                     </div>
@@ -174,7 +178,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                         <tbody>
                           {notes.map((n) => (
                             <tr key={n.id}>
-                              <td className="remarks-text">{n.text}</td>
+                              <td className="remarks-text" title={n.text}>{n.text}</td>
                               <td className="remarks-date">{formatDateTime(n.created_at)}</td>
                               <td className="remarks-actions">
                                 <button
@@ -246,6 +250,33 @@ export default function ContractForm({ contract, onClose, onSaved }) {
           </div>
         </form>
       </div>
+
+      {noteDialog && (
+        <div
+          className="modal-overlay note-dialog-overlay"
+          onClick={(e) => { e.stopPropagation(); setNoteDialog(null); }}
+        >
+          <div className="modal modal-sm" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>{noteDialog.mode === 'edit' ? 'Modifier la note' : 'Ajouter une note'}</h3>
+              <button className="close-btn" type="button" onClick={() => setNoteDialog(null)}>&times;</button>
+            </div>
+            <div className="note-dialog-body">
+              <textarea
+                autoFocus
+                rows={6}
+                value={noteDialog.text}
+                onChange={(e) => setNoteDialog((d) => ({ ...d, text: e.target.value }))}
+                placeholder="Saisissez la note…"
+              />
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-ghost" onClick={() => setNoteDialog(null)}>Annuler</button>
+              <button type="button" className="btn btn-primary" onClick={saveNote}>Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
