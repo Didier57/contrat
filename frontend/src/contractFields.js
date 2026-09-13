@@ -42,7 +42,7 @@ export const FIELDS = [
   { key: 'ga', label: 'GA', type: 'text', bool: true },
   { key: 'customer_group', label: 'Customer group', type: 'text' },
   { key: 'product_group', label: 'Product_group', type: 'text' },
-  { key: 'remarks_bac_2', label: 'Remarks bac 2', type: 'text' },
+  { key: 'remarks_bac_2', label: 'Contact Client', type: 'text' },
   { key: 'contract_stop', label: 'Contract Stop', type: 'int', bool: true },
   { key: 'contract_stop_date', label: 'Contract Stop Date', type: 'date' },
   { key: 'remote', label: 'Remote', type: 'int' },
