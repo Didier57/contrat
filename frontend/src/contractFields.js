@@ -45,7 +45,6 @@ export const FIELDS = [
   { key: 'remarks_bac_2', label: 'Remarks bac 2', type: 'text' },
   { key: 'contract_stop', label: 'Contract Stop', type: 'int', bool: true },
   { key: 'contract_stop_date', label: 'Contract Stop Date', type: 'date' },
-  { key: 'id_customer', label: 'IDCustomer', type: 'text' },
   { key: 'remote', label: 'Remote', type: 'int' },
   { key: 'date_remote', label: 'Date Remote', type: 'date' }
 ];
