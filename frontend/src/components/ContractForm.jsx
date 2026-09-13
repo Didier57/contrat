@@ -5,6 +5,7 @@ import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const FULL_WIDTH = ['customer_name', 'special_conditions', 'remarks_bac', 'remarks_bac_2'];
 const CONTRACT_TYPES = ['Maintenance', 'Rental', 'Managed Services'];
+const MULTILINE = ['remarks_bac_2'];
 
 function formatDateTime(dt) {
   if (!dt) return '';
@@ -207,7 +208,13 @@ export default function ContractForm({ contract, onClose, onSaved }) {
               return (
                 <div className={`field ${FULL_WIDTH.includes(f.key) ? 'full' : ''}`} key={f.key}>
                   <label>{f.label}{f.key === 'customer_name' ? ' *' : ''}</label>
-                  {f.key === 'import_id' ? (
+                  {MULTILINE.includes(f.key) ? (
+                    <textarea
+                      rows={3}
+                      value={form[f.key] ?? ''}
+                      onChange={(e) => update(f.key, e.target.value)}
+                    />
+                  ) : f.key === 'import_id' ? (
                     <input
                       type="text"
                       className="input-readonly"
