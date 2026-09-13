@@ -141,6 +141,13 @@ router.post('/profile/send-expiry', requireAuth, requireEditor, async (req, res)
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
   try {
     const result = await sendExpiryReminderForUser(user);
+    logAudit({
+      user: req.user,
+      action: 'Envoi manuel du rappel d\'expiration',
+      category: 'profile',
+      target: user.username,
+      detail: result.notice || `${result.count} contrat(s) sur ${result.days} jours`
+    });
     res.json({ ok: true, ...result });
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -184,6 +191,7 @@ router.post('/forgot-password', async (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE lower(email) = ?').get(v);
   if (!user) {
     // Réponse volontairement neutre pour ne pas révéler l'existence du compte
+    logAudit({ action: 'Demande de réinitialisation (email inconnu)', category: 'profile', target: v });
     return res.json({ ok: true });
   }
 
@@ -196,6 +204,7 @@ router.post('/forgot-password', async (req, res) => {
       intro: `Bonjour ${user.username}, une réinitialisation de votre mot de passe a été demandée.`,
       note: 'Ce lien expire dans 72 heures. Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
     });
+    logAudit({ user, action: 'Demande de réinitialisation du mot de passe', category: 'profile', target: user.username, detail: user.email });
     res.json({ ok: true });
   } catch (err) {
     console.error('[auth] Échec envoi email de reset:', err.message);

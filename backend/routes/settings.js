@@ -83,8 +83,10 @@ router.post('/test', async (req, res) => {
       subject: 'Contrats — email de test',
       html: '<p>Test réussi : votre configuration SMTP fonctionne correctement.</p>'
     });
+    logAudit({ user: req.user, action: 'Email de test SMTP', category: 'settings', target: to });
     res.json({ ok: true });
   } catch (err) {
+    logAudit({ user: req.user, action: 'Échec email de test SMTP', category: 'settings', detail: err.message });
     res.status(400).json({ error: err.message });
   }
 });

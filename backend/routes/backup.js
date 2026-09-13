@@ -26,6 +26,7 @@ router.get('/export', (req, res) => {
 // POST /api/backup/import — restaure la base depuis un classeur sauvegardé
 router.post('/import', upload.single('file'), (req, res) => {
   if (!req.file) {
+    logAudit({ user: req.user, action: 'Échec de la restauration', category: 'backup', detail: 'fichier manquant' });
     return res.status(400).json({ error: 'Fichier Excel manquant' });
   }
   try {
@@ -33,6 +34,7 @@ router.post('/import', upload.single('file'), (req, res) => {
     logAudit({ user: req.user, action: 'Restauration de la base', category: 'backup', target: req.file.originalname });
     res.json({ ok: true, message: 'Base restaurée depuis le fichier Excel', ...result });
   } catch (e) {
+    logAudit({ user: req.user, action: 'Échec de la restauration', category: 'backup', target: req.file.originalname, detail: e.message });
     res.status(400).json({ error: `Import impossible : ${e.message}` });
   }
 });

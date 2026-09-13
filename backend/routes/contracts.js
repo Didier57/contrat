@@ -242,9 +242,19 @@ router.delete('/:id', requireAdmin, (req, res) => {
 
 // POST /api/contracts/import - import Excel complet (admin) : remplace tout le contenu
 router.post('/import', requireAdmin, upload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Fichier Excel manquant' });
+  if (!req.file) {
+    logAudit({ user: req.user, action: 'Échec import Excel des contrats', category: 'import', detail: 'fichier manquant' });
+    return res.status(400).json({ error: 'Fichier Excel manquant' });
+  }
   const { rows, ignored, errors } = parseWorkbook(req.file.buffer);
   if (!rows.length) {
+    logAudit({
+      user: req.user,
+      action: 'Échec import Excel des contrats',
+      category: 'import',
+      target: req.file.originalname,
+      detail: 'aucune ligne valide'
+    });
     return res.status(400).json({
       error: `Aucune ligne valide trouvée dans « ${req.file.originalname} ».`,
       detail: errors.join(' · ')
