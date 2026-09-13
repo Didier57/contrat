@@ -45,18 +45,28 @@ async function sendMail({ to, subject, html, text = '', attachments = [] }) {
     host: c.host,
     port: c.port,
     secure: c.secure,
-    auth: c.user ? { user: c.user, pass: c.pass } : undefined,
-    ignoreTLS: !c.secure
+    auth: c.user ? { user: c.user, pass: c.pass } : undefined
+    // Sans ignoreTLS : sur 587/25, STARTTLS est utilisé si le serveur le propose.
+    // (ignoreTLS: true forçait le plaintext et faisait échouer les serveurs exigeant TLS.)
   });
 
-  await transporter.sendMail({
-    from: buildFrom(c.from, c.from_name),
-    to,
-    subject,
-    text,
-    html,
-    attachments
-  });
+  try {
+    const info = await transporter.sendMail({
+      from: buildFrom(c.from, c.from_name),
+      to,
+      subject,
+      text,
+      html,
+      attachments
+    });
+    console.log(`[mailer] Email envoyé → ${Array.isArray(to) ? to.join(', ') : to} (${c.host}:${c.port})`);
+    if (info && info.rejected && info.rejected.length) {
+      console.warn('[mailer] Destinataires rejetés:', info.rejected.join(', '));
+    }
+  } catch (err) {
+    console.error(`[mailer] Échec d'envoi → ${c.host}:${c.port} — ${err.message}`);
+    throw err;
+  }
 }
 
 // Destinataires = emails des administrateurs
