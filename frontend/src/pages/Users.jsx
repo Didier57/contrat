@@ -215,7 +215,9 @@ export default function Users() {
                   <td>
                     {u.role === 'admin'
                       ? <span className="badge badge-blue">Admin</span>
-                      : <span className="badge badge-gray">Lecteur</span>}
+                      : u.role === 'editeur'
+                        ? <span className="badge badge-green">Éditeur</span>
+                        : <span className="badge badge-gray">Lecteur</span>}
                   </td>
                   <td>
                     {u.active === 1
@@ -266,6 +268,7 @@ export default function Users() {
                   <label>Rôle</label>
                   <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
                     <option value="lecteur">Lecteur</option>
+                    <option value="editeur">Éditeur</option>
                     <option value="admin">Administrateur</option>
                   </select>
                 </div>
@@ -330,7 +333,7 @@ export default function Users() {
       {confirmDelete && (
         <ConfirmDialog
           title="Supprimer cet utilisateur ?"
-          message={`Le compte « ${confirmDelete.username} » (${confirmDelete.role === 'admin' ? 'administrateur' : 'lecteur'}) sera définitivement supprimé.`}
+          message={`Le compte « ${confirmDelete.username} » (${confirmDelete.role === 'admin' ? 'administrateur' : confirmDelete.role === 'editeur' ? 'éditeur' : 'lecteur'}) sera définitivement supprimé.`}
           onCancel={() => setConfirmDelete(null)}
           onConfirm={handleDelete}
           loading={deleting}

@@ -35,4 +35,12 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-module.exports = { sign, requireAuth, requireAdmin };
+// Auteur d'actions sur les contrats : administrateur ou éditeur
+function requireEditor(req, res, next) {
+  if (!req.user || (req.user.role !== 'admin' && req.user.role !== 'editeur')) {
+    return res.status(403).json({ error: 'Accès réservé aux administrateurs et éditeurs' });
+  }
+  next();
+}
+
+module.exports = { sign, requireAuth, requireAdmin, requireEditor };

@@ -39,7 +39,7 @@ export default function Layout() {
           )}
         </nav>
         <div className="topbar-user">
-          <span className="topbar-role">{user?.role === 'admin' ? 'Administrateur' : 'Lecteur'}</span>
+          <span className="topbar-role">{user?.role === 'admin' ? 'Administrateur' : user?.role === 'editeur' ? 'Éditeur' : 'Lecteur'}</span>
           <span className="topbar-name">{user?.username}</span>
           <button className="btn btn-xs" onClick={() => setProfileOpen(true)} title="Mon profil">
             <UserCircle size={13} /> Profil

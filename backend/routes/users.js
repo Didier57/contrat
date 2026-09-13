@@ -23,7 +23,7 @@ router.post('/', requireAdmin, async (req, res) => {
   if (!username) {
     return res.status(400).json({ error: 'username requis' });
   }
-  if (!['admin', 'lecteur'].includes(role)) {
+  if (!['admin', 'editeur', 'lecteur'].includes(role)) {
     return res.status(400).json({ error: 'Rôle invalide' });
   }
   const vEmail = String(email || '').trim().toLowerCase();
@@ -83,7 +83,7 @@ router.put('/:id', requireAdmin, (req, res) => {
   const sets = [];
   const params = [];
   if (req.body.role) {
-    if (!['admin', 'lecteur'].includes(req.body.role)) return res.status(400).json({ error: 'Rôle invalide' });
+    if (!['admin', 'editeur', 'lecteur'].includes(req.body.role)) return res.status(400).json({ error: 'Rôle invalide' });
     sets.push('role = ?');
     params.push(req.body.role);
   }

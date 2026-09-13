@@ -91,7 +91,7 @@ async function sendLoginNotification(username, role) {
         <p>Une connexion a été détectée sur l'application <b>Contrats</b> :</p>
         <ul>
           <li><b>Utilisateur</b> : ${escapeHtml(username)}</li>
-          <li><b>Rôle</b> : ${role === 'admin' ? 'administrateur' : 'lecteur'}</li>
+          <li><b>Rôle</b> : ${role === 'admin' ? 'administrateur' : role === 'editeur' ? 'éditeur' : 'lecteur'}</li>
           <li><b>Date / heure</b> : ${escapeHtml(moment)}</li>
         </ul>
         <p style="color:#666">Si ce n'était pas vous, vérifiez vos comptes.</p>

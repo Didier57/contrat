@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { requireAuth, requireAdmin } = require('../auth');
+const { requireAuth, requireEditor } = require('../auth');
 const { logAudit } = require('../audit');
 const db = require('../db');
 const { migrateLegacyRemarks } = require('../db');
@@ -49,7 +49,7 @@ router.get('/:id', (req, res) => {
 });
 
 // POST /api/contracts - ajouter
-router.post('/', requireAdmin, (req, res) => {
+router.post('/', requireEditor, (req, res) => {
   const data = {};
   for (const k of FIELD_NAMES) data[k] = req.body[k] ?? null;
   data.updated_at = new Date().toISOString();
@@ -76,7 +76,7 @@ router.post('/', requireAdmin, (req, res) => {
 });
 
 // PUT /api/contracts/:id - modifier
-router.put('/:id', requireAdmin, (req, res) => {
+router.put('/:id', requireEditor, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
 
@@ -120,7 +120,7 @@ router.get('/:id/remarks', (req, res) => {
 });
 
 // POST /api/contracts/:id/remarks - ajouter une note (date/heure enregistrées)
-router.post('/:id/remarks', requireAdmin, (req, res) => {
+router.post('/:id/remarks', requireEditor, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
   const text = String(req.body.text || '').trim();
@@ -142,7 +142,7 @@ router.post('/:id/remarks', requireAdmin, (req, res) => {
 });
 
 // PUT /api/contracts/:id/remarks/:rid - modifier une note
-router.put('/:id/remarks/:rid', requireAdmin, (req, res) => {
+router.put('/:id/remarks/:rid', requireEditor, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
   const note = db.prepare(
@@ -165,7 +165,7 @@ router.put('/:id/remarks/:rid', requireAdmin, (req, res) => {
 });
 
 // DELETE /api/contracts/:id/remarks/:rid - supprimer une note
-router.delete('/:id/remarks/:rid', requireAdmin, (req, res) => {
+router.delete('/:id/remarks/:rid', requireEditor, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
   const note = db.prepare(
@@ -197,7 +197,7 @@ function syncRemarksMirror(contractId) {
 }
 
 // DELETE /api/contracts/:id
-router.delete('/:id', requireAdmin, (req, res) => {
+router.delete('/:id', requireEditor, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
   if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
   db.prepare('DELETE FROM contracts WHERE id = ?').run(req.params.id);
@@ -211,7 +211,7 @@ router.delete('/:id', requireAdmin, (req, res) => {
 });
 
 // POST /api/contracts/import - import Excel complet (admin) : remplace tout le contenu
-router.post('/import', requireAdmin, upload.single('file'), (req, res) => {
+router.post('/import', requireEditor, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier Excel manquant' });
   const { rows, ignored, errors } = parseWorkbook(req.file.buffer);
   if (!rows.length) {

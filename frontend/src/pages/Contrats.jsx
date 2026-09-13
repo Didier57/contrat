@@ -35,7 +35,7 @@ export function getCellLabel(col, key) {
 
 export default function Contrats() {
   const { user } = useAuth();
-  const isAdmin = user?.role === 'admin';
+  const canEdit = user?.role === 'admin' || user?.role === 'editeur';
 
   const [allRows, setAllRows] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -339,12 +339,12 @@ export default function Contrats() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={exportExcel}><FileSpreadsheet size={15} /> Excel</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setPickerOpen(true)}><Columns3 size={15} /> Choisir des colonnes</button>
-          {isAdmin && (
+          {canEdit && (
             <button className="btn btn-ghost btn-sm" onClick={() => setImportOpen(true)}>
               <UploadCloud size={15} /> <span style={{ color: '#1d4ed8' }}>Importer Excel</span>
             </button>
           )}
-          {isAdmin && (
+          {canEdit && (
             <button className="btn btn-primary btn-sm" onClick={() => setEditing({})}>
               <Plus size={15} /> Ajouter
             </button>
@@ -427,7 +427,7 @@ export default function Contrats() {
                     </th>
                   );
                 })}
-                {isAdmin && <th style={{ width: 70 }}>Actions</th>}
+                {canEdit && <th style={{ width: 70 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -465,7 +465,7 @@ export default function Contrats() {
                         </td>
                       );
                     })}
-                    {isAdmin && (
+                    {canEdit && (
                       <td className="row-actions">
                         <button className="btn btn-xs btn-ghost" onClick={() => setEditing(r)} title="Modifier"><Pencil size={13} /></button>
                         <button className="btn btn-xs btn-danger" onClick={() => setConfirmDelete(r)} title="Supprimer"><Trash2 size={13} /></button>
@@ -480,11 +480,11 @@ export default function Contrats() {
         <div className="table-footer">
           <span>{filtered.length} ligne{filtered.length > 1 ? 's' : ''}</span>
           {hasActiveColFilter() && <span className="badge badge-blue">Filtres colonnes actifs</span>}
-          {!isAdmin && <span>Mode lecture seule</span>}
+          {!canEdit && <span>Mode lecture seule</span>}
         </div>
       </div>
 
-      {importOpen && isAdmin && (
+      {importOpen && canEdit && (
         <ImportExcelModal
           onClose={() => setImportOpen(false)}
           onDone={() => { setImportOpen(false); load(); }}
@@ -493,7 +493,7 @@ export default function Contrats() {
       {pickerOpen && (
         <ColumnsPicker onClose={() => setPickerOpen(false)} onApply={onColumnsApply} />
       )}
-      {editing && isAdmin && (
+      {editing && canEdit && (
         <ContractForm
           contract={editing}
           onClose={() => setEditing(null)}
@@ -504,7 +504,7 @@ export default function Contrats() {
           }}
         />
       )}
-      {confirmDelete && isAdmin && (
+      {confirmDelete && canEdit && (
         <ConfirmDialog
           title="Supprimer ce contrat ?"
           message={`« ${confirmDelete.customer_name} » (${confirmDelete.sap_ewp || confirmDelete.sap_eupac || 'n° ' + confirmDelete.import_id}) sera définitivement supprimé. Cette action est irréversible.`}

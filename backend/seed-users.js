@@ -5,6 +5,11 @@ const username = process.argv[2] || 'admin';
 const password = process.argv[3] || 'admin123';
 const role = process.argv[4] || 'admin';
 
+if (!['admin', 'editeur', 'lecteur'].includes(role)) {
+  console.error(`Rôle invalide: ${role} (attendu: admin, editeur ou lecteur)`);
+  process.exit(1);
+}
+
 const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
 if (exists) {
   console.log(`L'utilisateur "${username}" existe déjà.`);
