@@ -520,12 +520,15 @@ export default function Contrats() {
                         content = v == null || v === '' ? '—' : String(v);
                       }
                       const isCust = c.key === 'customer_name';
+                      const title = c.key === 'remarks_bac' && r.remarks_all
+                        ? r.remarks_all
+                        : (v == null || v === '' ? '—' : String(v));
                       return (
                         <td
                           key={c.key}
                           className={`${className}${isCust ? ' col-sticky col-customer' : ''}`}
                           style={isCust ? { left: canEdit ? 70 : 0 } : undefined}
-                          title={v == null || v === '' ? '—' : String(v)}
+                          title={title}
                         >
                           {content}
                         </td>

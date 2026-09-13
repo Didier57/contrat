@@ -38,7 +38,24 @@ router.get('/', (req, res) => {
   }
 
   sql += ' ORDER BY customer_name COLLATE NOCASE ASC';
-  res.json(db.prepare(sql).all(...params));
+  const rows = db.prepare(sql).all(...params);
+
+  const notes = db.prepare(
+    `SELECT contract_id, text FROM contract_remarks
+     ORDER BY contract_id ASC, (created_at IS NULL) ASC, created_at DESC, id DESC`
+  ).all();
+  const remarksByContract = new Map();
+  for (const n of notes) {
+    const list = remarksByContract.get(n.contract_id);
+    if (list) list.push(n.text);
+    else remarksByContract.set(n.contract_id, [n.text]);
+  }
+  for (const r of rows) {
+    const list = remarksByContract.get(r.id);
+    r.remarks_all = list && list.length ? list.join('\n') : null;
+  }
+
+  res.json(rows);
 });
 
 // GET /api/contracts/:id
