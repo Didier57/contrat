@@ -394,7 +394,7 @@ export default function Contrats() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-ghost btn-sm" onClick={exportExcel}><FileSpreadsheet size={15} /> Excel</button>
           <button className="btn btn-ghost btn-sm" onClick={() => setPickerOpen(true)}><Columns3 size={15} /> Choisir des colonnes</button>
-          {canEdit && (
+          {user?.role === 'admin' && (
             <button className="btn btn-ghost btn-sm" onClick={() => setImportOpen(true)}>
               <UploadCloud size={15} /> <span style={{ color: '#1d4ed8' }}>Importer Excel</span>
             </button>
@@ -556,7 +556,7 @@ export default function Contrats() {
         </div>
       </div>
 
-      {importOpen && canEdit && (
+      {importOpen && user?.role === 'admin' && (
         <ImportExcelModal
           onClose={() => setImportOpen(false)}
           onDone={() => { setImportOpen(false); load(); }}

@@ -1,6 +1,6 @@
 const express = require('express');
 const multer = require('multer');
-const { requireAuth, requireEditor } = require('../auth');
+const { requireAuth, requireAdmin, requireEditor } = require('../auth');
 const { logAudit } = require('../audit');
 const db = require('../db');
 const { migrateLegacyRemarks } = require('../db');
@@ -241,7 +241,7 @@ router.delete('/:id', requireEditor, (req, res) => {
 });
 
 // POST /api/contracts/import - import Excel complet (admin) : remplace tout le contenu
-router.post('/import', requireEditor, upload.single('file'), (req, res) => {
+router.post('/import', requireAdmin, upload.single('file'), (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Fichier Excel manquant' });
   const { rows, ignored, errors } = parseWorkbook(req.file.buffer);
   if (!rows.length) {
