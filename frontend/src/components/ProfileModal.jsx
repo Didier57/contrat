@@ -102,21 +102,48 @@ export default function ProfileModal({ onClose }) {
                 placeholder="nom@entreprise.com"
               />
             </div>
-            {canReceive && (
-              <div className="field field-check">
-                <label className="check-label">
-                  <input
-                    type="checkbox"
-                    checked={!!form.notify_expiry}
-                    onChange={(e) => setForm({ ...form, notify_expiry: e.target.checked })}
-                  />
-                  Recevoir les rappels automatiques des contrats qui expirent
-                </label>
-                <span className="field-hint">Un email liste les contrats arrivant à échéance.</span>
-              </div>
-            )}
+            <div className="field">
+              <label>Mot de passe actuel <span className="field-hint">(pour changer le mot de passe)</span></label>
+              <input
+                type="password"
+                value={form.currentPassword}
+                onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
+                autoComplete="current-password"
+              />
+            </div>
+            <div className="field">
+              <label>Nouveau mot de passe <span className="field-hint">(6 caractères min.)</span></label>
+              <input
+                type="password"
+                value={form.newPassword}
+                onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
+                autoComplete="new-password"
+              />
+            </div>
+            <div className="field">
+              <label>Confirmer le nouveau mot de passe</label>
+              <input
+                type="password"
+                value={form.confirmPassword}
+                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
+                autoComplete="new-password"
+              />
+            </div>
             {canReceive && (
               <>
+                <hr className="profile-sep" />
+                <div className="profile-section-title">Notifications des échéances</div>
+                <div className="field field-check">
+                  <label className="check-label">
+                    <input
+                      type="checkbox"
+                      checked={!!form.notify_expiry}
+                      onChange={(e) => setForm({ ...form, notify_expiry: e.target.checked })}
+                    />
+                    Recevoir les rappels automatiques des contrats qui expirent
+                  </label>
+                  <span className="field-hint">Un email liste les contrats arrivant à échéance.</span>
+                </div>
                 <div className="form-row">
                   <div className="field">
                     <label>Nombre de jours avant expiration</label>
@@ -152,33 +179,6 @@ export default function ProfileModal({ onClose }) {
                 </div>
               </>
             )}
-            <div className="field">
-              <label>Mot de passe actuel <span className="field-hint">(pour changer le mot de passe)</span></label>
-              <input
-                type="password"
-                value={form.currentPassword}
-                onChange={(e) => setForm({ ...form, currentPassword: e.target.value })}
-                autoComplete="current-password"
-              />
-            </div>
-            <div className="field">
-              <label>Nouveau mot de passe <span className="field-hint">(6 caractères min.)</span></label>
-              <input
-                type="password"
-                value={form.newPassword}
-                onChange={(e) => setForm({ ...form, newPassword: e.target.value })}
-                autoComplete="new-password"
-              />
-            </div>
-            <div className="field">
-              <label>Confirmer le nouveau mot de passe</label>
-              <input
-                type="password"
-                value={form.confirmPassword}
-                onChange={(e) => setForm({ ...form, confirmPassword: e.target.value })}
-                autoComplete="new-password"
-              />
-            </div>
             {done && <div className="success-banner full">{done}</div>}
           </div>
           <div className="modal-footer">
