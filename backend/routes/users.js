@@ -48,7 +48,7 @@ router.post('/', requireAdmin, async (req, res) => {
         subject: 'Contrats — activez votre compte',
         intro: `Bonjour ${username}, un compte vient de vous être créé sur l'application Contrats. Cliquez ci-dessous pour définir votre mot de passe :`,
         username,
-        note: 'Ce lien expire dans 24 heures.'
+        note: 'Ce lien expire dans 72 heures.'
       });
       emailSent = true;
     } catch (err) {

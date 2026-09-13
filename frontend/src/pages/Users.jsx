@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck } from 'lucide-react';
 
-const EMPTY = { username: '', email: '', password: '', role: 'lecteur' };
+const EMPTY = { username: '', email: '', password: '', role: 'lecteur', active: true };
 
 const CAT_NAMES = {
   login: 'Connexions',
@@ -88,7 +88,7 @@ export default function Users() {
   }
 
   function openEdit(u) {
-    setForm({ username: u.username, email: u.email || '', password: '', role: u.role });
+    setForm({ username: u.username, email: u.email || '', password: '', role: u.role, active: u.active === 1 });
     setEditing(u);
   }
 
@@ -106,7 +106,7 @@ export default function Users() {
     setSaving(true);
     try {
       if (editing.id) {
-        const payload = { role: form.role, email: form.email.trim() || null };
+        const payload = { role: form.role, email: form.email.trim() || null, active: form.active ? 1 : 0 };
         if (form.password) payload.password = form.password;
         await api.put(`/users/${editing.id}`, payload);
         showToast('Utilisateur modifié');
@@ -282,15 +282,33 @@ export default function Users() {
                   />
                 </div>
                 {editing.id ? (
-                  <div className="field">
-                    <label>Mot de passe <span className="field-hint">(laisser vide pour ne pas changer)</span></label>
-                    <input
-                      type="password"
-                      value={form.password}
-                      onChange={(e) => setForm({ ...form, password: e.target.value })}
-                      autoComplete="new-password"
-                    />
-                  </div>
+                  <>
+                    <div className="field">
+                      <label>Mot de passe <span className="field-hint">(laisser vide pour ne pas changer)</span></label>
+                      <input
+                        type="password"
+                        value={form.password}
+                        onChange={(e) => setForm({ ...form, password: e.target.value })}
+                        autoComplete="new-password"
+                      />
+                    </div>
+                    <div className="field field-check">
+                      <label className="check-label">
+                        <input
+                          type="checkbox"
+                          checked={!!form.active}
+                          disabled={!!me && me.id === editing.id}
+                          onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                        />
+                        Compte actif
+                      </label>
+                      <span className="field-hint">
+                        {me && me.id === editing.id
+                          ? 'Vous ne pouvez pas désactiver votre propre compte.'
+                          : 'Décoché, l\'utilisateur ne peut plus se connecter (le compte est conservé).'}
+                      </span>
+                    </div>
+                  </>
                 ) : (
                   <div className="field-hint" style={{ marginBottom: 16 }}>
                     À la création, un mot de passe est généré automatiquement et l'utilisateur reçoit un

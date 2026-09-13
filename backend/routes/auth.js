@@ -194,7 +194,7 @@ router.post('/forgot-password', async (req, res) => {
       token,
       subject: 'Contrats — réinitialisation de votre mot de passe',
       intro: `Bonjour ${user.username}, une réinitialisation de votre mot de passe a été demandée.`,
-      note: 'Ce lien expire dans 24 heures. Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
+      note: 'Ce lien expire dans 72 heures. Si vous n\'êtes pas à l\'origine de cette demande, ignorez cet email.'
     });
     res.json({ ok: true });
   } catch (err) {

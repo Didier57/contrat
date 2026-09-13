@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const db = require('./db');
 
-const TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 h
+const TOKEN_TTL_MS = 72 * 60 * 60 * 1000; // 72 h
 
 // Génère un token de réinitialisation pour un utilisateur (les anciens sont invalidés)
 function createResetToken(userId, ttlMs = TOKEN_TTL_MS) {
