@@ -1216,10 +1216,28 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
 .remarks-table td {
   padding: 5px 8px;
   border-bottom: 1px solid var(--border);
-  vertical-align: top;
+  vertical-align: middle;
 }
-.remarks-text { white-space: normal; font-size: 12px; max-width: 420px; }
-.remarks-date { white-space: nowrap; font-size: 11px; color: var(--muted); }
+.remarks-table th, .remarks-table td { border-left: 1px solid var(--border); }
+.remarks-table th:first-child, .remarks-table td:first-child { border-left: none; }
+.remarks-text {
+  white-space: normal;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.remarks-date {
+  width: 120px;
+  white-space: nowrap;
+  font-size: 10px;
+  color: var(--muted);
+  text-align: center;
+}
+.remarks-actions {
+  width: 64px;
+  text-align: center;
+}
+.remarks-actions .btn { padding: 1px 5px; }
+.remarks-actions .btn svg { flex-shrink: 0; }
 
 @media (max-width: 1100px) {
   table.table { min-width: 100%; }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { FIELDS } from '../contractFields.js';
+import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const FULL_WIDTH = ['customer_name', 'special_conditions', 'remarks_bac', 'remarks_bac_2'];
 
@@ -8,9 +9,9 @@ function formatDateTime(dt) {
   if (!dt) return '';
   const d = new Date(dt);
   if (isNaN(d.getTime())) return String(dt);
-  return d.toLocaleString('fr-FR', {
-    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
-  });
+  const date = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+  const time = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} ${time}`;
 }
 
 export default function ContractForm({ contract, onClose, onSaved }) {
@@ -56,6 +57,27 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     if (!text || !text.trim()) return;
     try {
       await api.post(`/contracts/${contract.id}/remarks`, { text: text.trim() });
+      refreshNotes();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function editNote(note) {
+    const text = window.prompt('Modifier la note :', note.text);
+    if (text === null || !text.trim()) return;
+    try {
+      await api.put(`/contracts/${contract.id}/remarks/${note.id}`, { text: text.trim() });
+      refreshNotes();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function deleteNote(note) {
+    if (!window.confirm('Supprimer cette note ?')) return;
+    try {
+      await api.del(`/contracts/${contract.id}/remarks/${note.id}`);
       refreshNotes();
     } catch (err) {
       setError(err.message);
@@ -134,7 +156,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                         className="btn btn-xs btn-ghost"
                         onClick={addNote}
                         title="Ajouter une note"
-                      >+ Ajouter une note</button>
+                      ><Plus size={13} /> Ajouter une note</button>
                     </div>
                     {notesLoading ? (
                       <div className="empty-state"><span className="spinner" /></div>
@@ -146,6 +168,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                           <tr>
                             <th>Note</th>
                             <th className="remarks-date">Date d'ajout</th>
+                            <th className="remarks-actions">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -153,6 +176,20 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                             <tr key={n.id}>
                               <td className="remarks-text">{n.text}</td>
                               <td className="remarks-date">{formatDateTime(n.created_at)}</td>
+                              <td className="remarks-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-ghost"
+                                  title="Modifier la note"
+                                  onClick={() => editNote(n)}
+                                ><Pencil size={12} /></button>
+                                <button
+                                  type="button"
+                                  className="btn btn-xs btn-danger"
+                                  title="Supprimer la note"
+                                  onClick={() => deleteNote(n)}
+                                ><Trash2 size={12} /></button>
+                              </td>
                             </tr>
                           ))}
                         </tbody>
