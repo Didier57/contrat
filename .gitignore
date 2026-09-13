@@ -1,0 +1,32 @@
+# Dépendances
+node_modules
+**/node_modules
+
+# Build frontend
+frontend/dist
+
+# Base de données SQLite (données réelles)
+*.db
+*.db-wal
+*.db-shm
+.data/
+data/
+
+# Secrets / config locale
+.env
+
+# Données clients réelles (seed) — à ne pas publier
+scripts/data.json
+
+# Journal et artefacts du watchdog NAS
+*.log
+.deploy-*
+.deploy-marker
+.deploy-lock
+Running
+9da6b4e352d0
+cae2aabbb2fa
+
+# Divers
+.DS_Store
+Thumbs.db
