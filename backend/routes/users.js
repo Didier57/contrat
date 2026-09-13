@@ -125,6 +125,38 @@ router.put('/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// Renvoyer l'email d'invitation / de définition du mot de passe (admin)
+router.post('/:id/resend-invite', requireAdmin, async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  if (!user.email) return res.status(400).json({ error: 'Aucune adresse email pour cet utilisateur' });
+  if (!smtpConfigured()) return res.status(400).json({ error: 'L\'envoi d\'emails n\'est pas configuré' });
+
+  const token = createResetToken(user.id);
+  try {
+    await sendPasswordEmailWithToken({
+      to: user.email,
+      token,
+      subject: 'Contrats — définissez votre mot de passe',
+      intro: `Bonjour ${user.username}, voici un nouveau lien pour définir votre mot de passe :`,
+      username: user.username,
+      note: 'Ce lien expire dans 72 heures.'
+    });
+  } catch (err) {
+    console.error('[users] Échec renvoi invitation:', err.message);
+    return res.status(500).json({ error: 'Impossible d\'envoyer l\'email — réessayez plus tard' });
+  }
+
+  logAudit({
+    user: req.user,
+    action: 'Renvoi de l\'invitation',
+    category: 'user',
+    target: `Utilisateur « ${user.username} »`,
+    detail: user.email
+  });
+  res.json({ ok: true, emailSent: true });
+});
+
 // Supprimer un utilisateur (admin)
 router.delete('/:id', requireAdmin, (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck, Mail } from 'lucide-react';
 
 const EMPTY = { username: '', email: '', password: '', role: 'lecteur', active: true };
 
@@ -27,6 +27,7 @@ export default function Users() {
   const [saving, setSaving] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
+  const [resendingId, setResendingId] = useState(null);
   const [confirmToggle, setConfirmToggle] = useState(null); // utilisateur à désactiver
   const [toast, setToast] = useState('');
   const [tempPass, setTempPass] = useState(null); // mot de passe provisoire si l'email n'a pas pu partir
@@ -174,6 +175,19 @@ export default function Users() {
     }
   }
 
+  async function handleResend(u) {
+    setResendingId(u.id);
+    setError('');
+    try {
+      await api.post(`/users/${u.id}/resend-invite`, {});
+      showToast(`Invitation renvoyée à ${u.email}`);
+    } catch (err) {
+      showToast(err.message);
+    } finally {
+      setResendingId(null);
+    }
+  }
+
   return (
     <div>
       <div className="page-header">
@@ -236,6 +250,14 @@ export default function Users() {
                     ) : (
                       <button className="btn btn-xs btn-ghost" onClick={() => handleToggle(u, 1)} title="Réactiver le compte"><UserCheck size={13} /></button>
                     )}
+                    {u.email ? (
+                      <button
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => handleResend(u)}
+                        disabled={resendingId === u.id}
+                        title="Renvoyer l'invitation par email"
+                      ><Mail size={13} /></button>
+                    ) : null}
                     <button className="btn btn-xs btn-danger" onClick={() => openConfirmDelete(u)} title="Supprimer"><Trash2 size={13} /></button>
                   </td>
                 </tr>

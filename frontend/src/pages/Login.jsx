@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { api } from '../api.js';
 import { setSession } from '../api.js';
 import { useAuth } from '../App.jsx';
@@ -12,7 +12,8 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [mode, setMode] = useState('login'); // 'login' | 'forgot' | 'forgotDone'
+  const [searchParams] = useSearchParams();
+  const [mode, setMode] = useState(searchParams.get('forgot') ? 'forgot' : 'login'); // 'login' | 'forgot' | 'forgotDone'
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
 
@@ -82,7 +83,7 @@ export default function Login() {
           <h1>Demande envoyée</h1>
           <p style={{ textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
             Si un compte existe avec cette adresse, un email contenant un lien de réinitialisation
-            vient de vous être envoyé (valable 24 h). Vérifiez votre boîte de réception.
+            vient de vous être envoyé (valable 72 h). Vérifiez votre boîte de réception.
           </p>
           <button className="btn btn-ghost btn-block" onClick={() => { setMode('login'); setError(''); }} style={{ marginTop: 8 }}>
             ← Retour à la connexion

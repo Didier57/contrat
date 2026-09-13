@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const db = require('../db');
 const { sign, requireAuth, requireEditor } = require('../auth');
 const { sendLoginNotification, sendPasswordEmailWithToken, sendExpiryReminderForUser, smtpConfigured } = require('../mailer');
-const { createResetToken, consumeResetToken } = require('../reset-token');
+const { createResetToken, verifyResetToken, consumeResetToken } = require('../reset-token');
 const { logAudit } = require('../audit');
 
 const router = express.Router();
@@ -203,12 +203,29 @@ router.post('/forgot-password', async (req, res) => {
   }
 });
 
+// Vérifie la validité d'un lien (sans le consommer) — utilisé par la page de réinitialisation
+router.get('/reset-password/verify', (req, res) => {
+  const token = String(req.query.token || '');
+  if (!token) return res.json({ valid: false, reason: 'missing' });
+  const check = verifyResetToken(token);
+  res.json({ valid: check.valid, reason: check.valid ? 'valid' : check.reason });
+});
+
 // Définit le nouveau mot de passe depuis le lien reçu par email
 router.post('/reset-password', (req, res) => {
   const { token, newPassword } = req.body || {};
   if (!token) return res.status(400).json({ error: 'Lien invalide' });
   if (!newPassword || newPassword.length < 6) {
     return res.status(400).json({ error: 'Le mot de passe doit faire au moins 6 caractères' });
+  }
+
+  const check = verifyResetToken(String(token));
+  if (!check.valid) {
+    const messages = {
+      used: 'Ce lien a déjà été utilisé — connectez-vous ou demandez un nouvel email',
+      expired: 'Ce lien a expiré — demandez un nouvel email',
+    };
+    return res.status(400).json({ error: messages[check.reason] || 'Lien invalide ou expiré — demandez un nouvel email' });
   }
 
   const reset = consumeResetToken(String(token));

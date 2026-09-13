@@ -13,13 +13,22 @@ function createResetToken(userId, ttlMs = TOKEN_TTL_MS) {
   return token;
 }
 
+// Vérifie un token SANS le consommer : { valid, reason, userId? }
+// reason : 'valid' | 'not_found' | 'used' | 'expired'
+function verifyResetToken(token) {
+  const row = db.prepare('SELECT * FROM password_resets WHERE token = ?').get(token);
+  if (!row) return { valid: false, reason: 'not_found' };
+  if (row.used === 1) return { valid: false, reason: 'used' };
+  if (new Date(row.expires_at).getTime() < Date.now()) return { valid: false, reason: 'expired' };
+  return { valid: true, reason: 'valid', userId: row.user_id };
+}
+
 // Consomme le token : retourne { userId } si valide et non expiré, sinon null
 function consumeResetToken(token) {
-  const row = db.prepare('SELECT * FROM password_resets WHERE token = ? AND used = 0').get(token);
-  if (!row) return null;
-  if (new Date(row.expires_at).getTime() < Date.now()) return null;
-  db.prepare('UPDATE password_resets SET used = 1 WHERE id = ?').run(row.id);
-  return { userId: row.user_id };
+  const check = verifyResetToken(token);
+  if (!check.valid) return null;
+  db.prepare('UPDATE password_resets SET used = 1 WHERE token = ?').run(token);
+  return { userId: check.userId };
 }
 
 // Mot de passe temporaire lisible (min. 10 caractères, sans ambigus 0/O/1/l/I)
@@ -31,4 +40,4 @@ function generateTemporaryPassword(length = 10) {
   return out;
 }
 
-module.exports = { createResetToken, consumeResetToken, generateTemporaryPassword };
+module.exports = { createResetToken, verifyResetToken, consumeResetToken, generateTemporaryPassword };
