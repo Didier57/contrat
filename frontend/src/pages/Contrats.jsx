@@ -43,8 +43,11 @@ export default function Contrats() {
 
   const [visible, setVisible] = useState(() => {
     try {
-      const saved = localStorage.getItem('contrats-visible-cols');
-      return saved ? JSON.parse(saved) : DEFAULT_VISIBLE;
+      const saved = JSON.parse(localStorage.getItem('contrats-visible-cols'));
+      if (Array.isArray(saved) && saved.length) {
+        return saved.includes('remarks_bac') ? saved : [...saved, 'remarks_bac'];
+      }
+      return DEFAULT_VISIBLE;
     } catch {
       return DEFAULT_VISIBLE;
     }
