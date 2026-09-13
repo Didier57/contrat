@@ -29,7 +29,11 @@ async function request(path, options = {}) {
 
   const res = await fetch(`${API}${path}`, { ...options, headers });
 
-  if (res.status === 401) {
+  // Sur les routes d'authentification, un 401 signifie « mauvais identifiants »
+  // (et non « session expirée ») : on laisse remonter le vrai message d'erreur.
+  const isAuthCall = path.startsWith('/auth/login') || path.startsWith('/auth/forgot-password') || path.startsWith('/auth/reset-password');
+
+  if (res.status === 401 && !isAuthCall) {
     clearSession();
     window.location.href = '/login';
     throw new Error('Session expirée');
