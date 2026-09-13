@@ -102,6 +102,15 @@ export default function Contrats() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const nextImportId = useMemo(() => {
+    let max = 0;
+    for (const r of allRows) {
+      const n = parseInt(r.import_id, 10);
+      if (Number.isFinite(n) && n > max) max = n;
+    }
+    return String(max + 1);
+  }, [allRows]);
+
   const [search, setSearch] = useState('');
   const [colFilters, setColFilters] = useState({ contract_stop: ['0'] }); // Par défaut : contrat non stoppés
   const [filterOpen, setFilterOpen] = useState(null);
@@ -391,7 +400,7 @@ export default function Contrats() {
             </button>
           )}
           {canEdit && (
-            <button className="btn btn-primary btn-sm" onClick={() => setEditing({})}>
+            <button className="btn btn-primary btn-sm" onClick={() => setEditing({ import_id: nextImportId })}>
               <Plus size={15} /> Ajouter
             </button>
           )}

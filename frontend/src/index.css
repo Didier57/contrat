@@ -91,6 +91,12 @@ body {
   box-shadow: 0 0 0 3px rgba(29, 78, 216, 0.15);
 }
 
+.field input.input-readonly {
+  background: #f1f5f9;
+  color: #475569;
+  cursor: not-allowed;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;

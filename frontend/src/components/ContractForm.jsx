@@ -206,7 +206,15 @@ export default function ContractForm({ contract, onClose, onSaved }) {
               return (
                 <div className={`field ${FULL_WIDTH.includes(f.key) ? 'full' : ''}`} key={f.key}>
                   <label>{f.label}{f.key === 'customer_name' ? ' *' : ''}</label>
-                  {f.bool ? (
+                  {f.key === 'import_id' ? (
+                    <input
+                      type="text"
+                      className="input-readonly"
+                      value={form[f.key] ?? ''}
+                      readOnly
+                      title="Identifiant attribué automatiquement — non modifiable"
+                    />
+                  ) : f.bool ? (
                     <div className="check-field">
                       <input
                         type="checkbox"

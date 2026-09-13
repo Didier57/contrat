@@ -58,6 +58,11 @@ router.get('/', (req, res) => {
   res.json(rows);
 });
 
+// GET /api/contracts/next-import-id - prochain ID attribué automatiquement
+router.get('/next-import-id', (req, res) => {
+  res.json({ import_id: nextImportId() });
+});
+
 // GET /api/contracts/:id
 router.get('/:id', (req, res) => {
   const row = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
@@ -69,6 +74,7 @@ router.get('/:id', (req, res) => {
 router.post('/', requireEditor, (req, res) => {
   const data = {};
   for (const k of FIELD_NAMES) data[k] = req.body[k] ?? null;
+  data.import_id = nextImportId(); // ID attribué automatiquement (non modifiable)
   data.updated_at = new Date().toISOString();
   data.updated_by = req.user.username;
 
@@ -201,6 +207,13 @@ router.delete('/:id/remarks/:rid', requireEditor, (req, res) => {
   });
   res.json({ ok: true });
 });
+
+// Prochain ID = plus grand import_id numérique + 1
+function nextImportId() {
+  const row = db.prepare('SELECT MAX(CAST(import_id AS INTEGER)) AS m FROM contracts').get();
+  const m = row && row.m != null ? Number(row.m) : 0;
+  return String(m + 1);
+}
 
 // Recalcule le « dernier commentaire » (colonne remarks_bac) depuis les notes
 function syncRemarksMirror(contractId) {
