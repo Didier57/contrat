@@ -1,6 +1,6 @@
 services:
   contrat-app:
-    image: ghcr.io/didier57/contrat-app:latest
+    image: ghcr.io/didier57/contrat:latest
     container_name: contrat-app
     restart: unless-stopped
     ports:

@@ -2,7 +2,7 @@
 
 L'image Docker est construite **automatiquement par GitHub Actions** à chaque `git push`
 sur `main`, puis publiée sur le **GitHub Container Registry (GHCR)**
-(`ghcr.io/didier57/contrat-app:latest`). Le dépôt doit être **public** : l'image est alors
+(`ghcr.io/didier57/contrat:latest`). Le dépôt doit être **public** : l'image est alors
 tirable sans authentification depuis le NAS.
 
 ## À chaque modification

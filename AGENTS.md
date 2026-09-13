@@ -27,5 +27,5 @@
 ## Déploiement (flux actuel)
 - **Pas de déploiement Sur Synology / copies Q: / watchdog** (supprimé).
 - Après les tests locaux, déploiement = `git add -A && git commit -m "..." && git push` sur `main`.
-- GitHub Actions construit l'image `ghcr.io/didier57/contrat-app:latest` (`.github/workflows/build.yml`).
-- Le serveur tire l'image : `docker compose pull && docker compose up -d --force-recreate` (stack/repo avec `image: ghcr.io/didier57/contrat-app:latest`).
+- GitHub Actions construit l'image `ghcr.io/didier57/contrat:latest` (`.github/workflows/build.yml`).
+- Le serveur tire l'image : `docker compose pull && docker compose up -d --force-recreate` (stack/repo avec `image: ghcr.io/didier57/contrat:latest`).

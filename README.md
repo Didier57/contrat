@@ -74,7 +74,7 @@ npm run dev
 ## Production
 
 L'image Docker est construite et publiée par **GitHub Actions** (`.github/workflows/build.yml`)
-sur le registre `ghcr.io/didier57/contrat-app:latest` à chaque `git push` sur `main`.
+sur le registre `ghcr.io/didier57/contrat:latest` à chaque `git push` sur `main`.
 
 Installation sur le NAS (voir `README-deploy.md`) :
 
