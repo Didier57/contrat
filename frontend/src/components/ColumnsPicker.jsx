@@ -1,18 +1,26 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Pin } from 'lucide-react';
 import { FIELDS, DEFAULT_VISIBLE } from '../contractFields.js';
+
+// Customer Name est ancrée en tête de table : elle n'est pas réordonnable ici.
+const PINNED = 'customer_name';
 
 // Ordre par défaut : colonnes visibles d'abord (dans leur ordre), puis les autres.
 function defaultOrder(selected) {
-  const all = FIELDS.map((f) => f.key);
+  const all = FIELDS.map((f) => f.key).filter((k) => k !== PINNED);
   const first = (selected || []).filter((k) => all.includes(k));
   return [...new Set([...first, ...all])];
 }
 
+function initSelection(current) {
+  const base = Array.isArray(current) && current.length ? current : DEFAULT_VISIBLE;
+  const sel = [...new Set(base)].filter((k) => k !== PINNED);
+  return sel.length ? sel : DEFAULT_VISIBLE.filter((k) => k !== PINNED);
+}
+
 export default function ColumnsPicker({ current, onClose, onApply }) {
-  const initialSelection = Array.isArray(current) && current.length ? current : DEFAULT_VISIBLE;
-  const [selected, setSelected] = useState(() => [...new Set(initialSelection)]);
-  const [order, setOrder] = useState(() => defaultOrder(initialSelection));
+  const [selected, setSelected] = useState(() => initSelection(current));
+  const [order, setOrder] = useState(() => defaultOrder(initSelection(current)));
   const dragIndex = useRef(null);
 
   const byKey = useMemo(() => Object.fromEntries(FIELDS.map((f) => [f.key, f])), []);
@@ -41,15 +49,17 @@ export default function ColumnsPicker({ current, onClose, onApply }) {
   }
 
   function reset() {
-    setSelected([...DEFAULT_VISIBLE]);
+    setSelected(initSelection(DEFAULT_VISIBLE));
     setOrder(defaultOrder(DEFAULT_VISIBLE));
   }
 
   function apply() {
-    const next = order.filter((k) => selected.includes(k));
+    const next = [PINNED, ...order.filter((k) => selected.includes(k))];
     onApply(next);
     onClose();
   }
+
+  const count = selected.length + 1;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -63,6 +73,13 @@ export default function ColumnsPicker({ current, onClose, onApply }) {
           Vos préférences sont enregistrées sur votre compte.
         </div>
         <div className="col-picker-body">
+          <div className="col-picker-row col-picker-row-locked" title="Colonne ancrée — toujours visible">
+            <Pin size={13} className="col-picker-grip" />
+            <label>
+              <input type="checkbox" checked disabled />
+              <span>{byKey[PINNED].label}</span>
+            </label>
+          </div>
           {order.map((key, i) => {
             const f = byKey[key];
             if (!f) return null;
@@ -91,7 +108,7 @@ export default function ColumnsPicker({ current, onClose, onApply }) {
             Réinitialiser
           </button>
           <button type="button" className="btn btn-primary" onClick={apply} disabled={selected.length === 0}>
-            Appliquer ({selected.length})
+            Appliquer ({count})
           </button>
         </div>
       </div>

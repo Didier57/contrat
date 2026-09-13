@@ -579,19 +579,28 @@ table.table th .th-sort {
   overflow: auto;
 }
 .clients-page table.table thead th { position: sticky; top: 0; z-index: 6; }
-/* Colonne ancrée (Customer Name) : toujours visible au défilement horizontal */
-.clients-page table.table thead th:first-child {
+/* Colonnes ancrées (Actions puis Customer Name) : toujours visibles au défilement horizontal */
+.clients-page table.table th.col-sticky { position: sticky; z-index: 7; }
+.clients-page table.table td.col-sticky { position: sticky; z-index: 5; background: var(--surface); }
+.clients-page table.table th.col-actions {
   left: 0;
-  z-index: 7;
+  z-index: 8;
+  background: #f8fafc;
   box-shadow: 1px 0 0 var(--border);
 }
-.clients-page table.table td:first-child {
-  position: sticky;
+.clients-page table.table td.col-actions {
   left: 0;
+  z-index: 8;
   background: var(--surface);
   box-shadow: 1px 0 0 var(--border);
 }
-.clients-page table.table tr:hover td:first-child {
+.clients-page table.table th.col-customer { background: #f8fafc; }
+.clients-page table.table td.col-customer {
+  background: var(--surface);
+  box-shadow: 1px 0 0 var(--border);
+}
+.clients-page table.table tr:hover td.col-actions,
+.clients-page table.table tr:hover td.col-customer {
   background: #f8fafc;
 }
 .clients-page table.table th .th-meta {
@@ -1169,6 +1178,8 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
 }
 .col-picker-row:hover { background: var(--bg-hover, #f1f5f9); }
 .col-picker-row:active { cursor: grabbing; }
+.col-picker-row-locked { cursor: default; background: #f8fafc; }
+.col-picker-row-locked .col-picker-grip { color: var(--primary); }
 .col-picker-row.unselected { color: var(--muted); }
 .col-picker-row.unselected label { opacity: .75; }
 .col-picker-grip { color: #94a3b8; flex: none; }

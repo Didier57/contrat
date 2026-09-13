@@ -65,7 +65,9 @@ export default function Contrats() {
   const prefsRef = useRef({});
   const COLUMNS = useMemo(() => {
     const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
-    return visible.map((k) => byKey[k]).filter(Boolean);
+    // Customer Name est ancrée en première colonne, juste après Actions.
+    const rest = visible.filter((k) => k !== 'customer_name').map((k) => byKey[k]).filter(Boolean);
+    return [byKey.customer_name, ...rest];
   }, [visible]);
 
   function persistColumns(next) {
@@ -421,12 +423,21 @@ export default function Contrats() {
           <table className="table table-compact clients-bordered">
             <thead>
               <tr>
+                {canEdit && (
+                  <th className="col-sticky col-actions" style={{ width: 70, textAlign: 'center' }}>Actions</th>
+                )}
                 {COLUMNS.map((c) => {
                   const colActive =
                     (Array.isArray(colFilters[c.key]) && colFilters[c.key].length > 0) ||
                     !!(dateRanges[c.key] && (dateRanges[c.key].from || dateRanges[c.key].to));
+                  const stickyLeft = c.key === 'customer_name' ? (canEdit ? 70 : 0) : undefined;
                   return (
-                    <th key={c.key} style={{ width: colWidths[c.key], textAlign: (c.bool || c.type === 'int' || c.type === 'real') ? 'center' : 'left' }} onClick={() => { if (!dragRef.current) onSort(c.key); }}>
+                    <th
+                      key={c.key}
+                      className={c.key === 'customer_name' ? 'col-sticky col-customer' : undefined}
+                      style={{ width: colWidths[c.key], left: stickyLeft, textAlign: (c.bool || c.type === 'int' || c.type === 'real') ? 'center' : 'left' }}
+                      onClick={() => { if (!dragRef.current) onSort(c.key); }}
+                    >
                       <span className="th-label">{c.label}</span>
                       <span className="th-meta">
                         <span className="th-sort">{sortKey === c.key ? (sortDir === 'asc' ? '▲' : '▼') : '⇅'}</span>
@@ -471,7 +482,6 @@ export default function Contrats() {
                     </th>
                   );
                 })}
-                {canEdit && <th style={{ width: 70 }}>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -480,6 +490,12 @@ export default function Contrats() {
                 const cellDateClass = d != null && d < 0 ? 'cell-red' : d != null && d <= 90 ? 'cell-orange' : '';
                 return (
                   <tr key={r.id}>
+                    {canEdit && (
+                      <td className="row-actions col-sticky col-actions">
+                        <button className="btn btn-xs btn-ghost" onClick={() => setEditing(r)} title="Modifier"><Pencil size={13} /></button>
+                        <button className="btn btn-xs btn-danger" onClick={() => setConfirmDelete(r)} title="Supprimer"><Trash2 size={13} /></button>
+                      </td>
+                    )}
                     {COLUMNS.map((c) => {
                       const v = r[c.key];
                       let content;
@@ -503,18 +519,18 @@ export default function Contrats() {
                       } else {
                         content = v == null || v === '' ? '—' : String(v);
                       }
+                      const isCust = c.key === 'customer_name';
                       return (
-                        <td key={c.key} className={className} title={v == null || v === '' ? '—' : String(v)}>
+                        <td
+                          key={c.key}
+                          className={`${className}${isCust ? ' col-sticky col-customer' : ''}`}
+                          style={isCust ? { left: canEdit ? 70 : 0 } : undefined}
+                          title={v == null || v === '' ? '—' : String(v)}
+                        >
                           {content}
                         </td>
                       );
                     })}
-                    {canEdit && (
-                      <td className="row-actions">
-                        <button className="btn btn-xs btn-ghost" onClick={() => setEditing(r)} title="Modifier"><Pencil size={13} /></button>
-                        <button className="btn btn-xs btn-danger" onClick={() => setConfirmDelete(r)} title="Supprimer"><Trash2 size={13} /></button>
-                      </td>
-                    )}
                   </tr>
                 );
               })}
