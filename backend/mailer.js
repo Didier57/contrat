@@ -234,8 +234,15 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+// Adresse publique de l'application (réglable dans Paramètres), sinon valeur config/env
+function appUrl() {
+  const configured = String(getSetting('app.url', '') || '').trim();
+  const base = configured || APP_URL;
+  return String(base).replace(/\/+$/, '');
+}
+
 function resetLink(token) {
-  return `${APP_URL}/reset?token=${encodeURIComponent(token)}`;
+  return `${appUrl()}/reset?token=${encodeURIComponent(token)}`;
 }
 
 // Email de définition / réinitialisation du mot de passe (création de compte ou mot de passe oublié)

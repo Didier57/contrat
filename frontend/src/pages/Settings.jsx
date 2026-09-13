@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { Save, Mail, Settings2 } from 'lucide-react';
 
 const EMPTY = {
+  app: { url: '' },
   smtp: { host: '', port: 587, secure: false, user: '', pass: '', from: '', from_name: '' },
   notify: { login: false }
 };
@@ -26,6 +27,9 @@ export default function Settings() {
     try {
       const data = await api.get('/settings');
       setForm({
+        app: {
+          url: (data.app && data.app.url) || ''
+        },
         smtp: {
           host: data.smtp.host,
           port: data.smtp.port,
@@ -49,6 +53,7 @@ export default function Settings() {
 
   useEffect(() => { load(); }, []);
 
+  const setApp = (k, v) => setForm((f) => ({ ...f, app: { ...f.app, [k]: v } }));
   const setSmtp = (k, v) => setForm((f) => ({ ...f, smtp: { ...f.smtp, [k]: v } }));
   const setNotify = (k, v) => setForm((f) => ({ ...f, notify: { ...f.notify, [k]: v } }));
 
@@ -95,6 +100,29 @@ export default function Settings() {
       {toast && <div className="toast">{toast}</div>}
 
       <div className="settings-grid">
+        <section className="panel">
+          <div className="panel-title">
+            <Settings2 size={16} /> Adresse de l'application
+          </div>
+          <form onSubmit={handleSave}>
+            <div className="field">
+              <label>URL publique</label>
+              <input
+                type="text"
+                value={form.app.url}
+                onChange={(e) => setApp('url', e.target.value)}
+                placeholder="https://contrat.damovo.cloud"
+              />
+            </div>
+            <div className="panel-sub">Utilisée pour construire les liens envoyés par email (invitation, réinitialisation du mot de passe). Laissez vide pour utiliser la valeur par défaut du serveur.</div>
+            <div className="panel-actions">
+              <button type="submit" className="btn btn-primary" disabled={saving}>
+                <Save size={14} /> {saving ? <span className="spinner" /> : 'Enregistrer'}
+              </button>
+            </div>
+          </form>
+        </section>
+
         <section className="panel">
           <div className="panel-title">
             <Settings2 size={16} /> Serveur SMTP

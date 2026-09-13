@@ -3,6 +3,7 @@ const { requireAuth, requireAdmin } = require('../auth');
 const { getSetting, setSetting, getBool, getInt } = require('../settings');
 const { sendMail, smtpConfigured } = require('../mailer');
 const { logAudit } = require('../audit');
+const { APP_URL } = require('../config');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -22,6 +23,9 @@ router.get('/', (req, res) => {
       passSet: !!pass
     },
     smtpConfigured: smtpConfigured(),
+    app: {
+      url: getSetting('app.url', APP_URL || '')
+    },
     notify: {
       login: getBool('notify.login', false)
     }
@@ -30,7 +34,16 @@ router.get('/', (req, res) => {
 
 // Sauvegarde des paramètres
 router.put('/', (req, res) => {
-  const { smtp, notify } = req.body || {};
+  const { smtp, notify, app } = req.body || {};
+
+  // Adresse publique de l'application (utilisée dans les liens des emails)
+  if (app && app.url !== undefined) {
+    const raw = String(app.url || '').trim().replace(/\/+$/, '');
+    if (raw && !/^https?:\/\//i.test(raw)) {
+      return res.status(400).json({ error: 'Adresse invalide : elle doit commencer par http:// ou https://' });
+    }
+    setSetting('app.url', raw);
+  }
 
   const boolKeys = ['secure'];
   ['host', 'port', 'secure', 'user', 'pass', 'from', 'from_name'].forEach((k) => {
@@ -48,6 +61,7 @@ router.put('/', (req, res) => {
 
   const sections = [];
   if (smtp && (smtp.host !== undefined || smtp.port !== undefined || smtp.secure !== undefined || smtp.user !== undefined || smtp.pass !== undefined || smtp.from !== undefined || smtp.from_name !== undefined)) sections.push('SMTP');
+  if (app && app.url !== undefined) sections.push('Adresse application');
   if (notify && notify.login !== undefined) sections.push('Notifications');
   logAudit({
     user: req.user,
