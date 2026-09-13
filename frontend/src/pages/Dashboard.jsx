@@ -74,10 +74,6 @@ export default function Dashboard() {
           <div className="label">Expirés</div>
           <div className="value red">{data.expired}</div>
         </div>
-        <div className="stat-card">
-          <div className="label">Stoppés</div>
-          <div className="value gray">{data.stopped}</div>
-        </div>
       </div>
 
       <div className="charts-grid">
@@ -121,42 +117,19 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="charts-grid">
-        <div className="panel">
-          <h3>Groupes clients les plus représentés</h3>
-          {data.byGroup.length === 0 ? (
-            <div className="empty-state">Aucune donnée.</div>
-          ) : (
-            <table className="table table-compact">
-              <tbody>
-                {data.byGroup.map((g) => (
-                  <tr key={g.key}>
-                    <td><b>{g.key}</b></td>
-                    <td style={{ textAlign: 'right' }}>{g.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-
-        <div className="panel">
-          <h3>Account managers</h3>
-          {data.byManager.length === 0 ? (
-            <div className="empty-state">Aucune donnée.</div>
-          ) : (
-            <table className="table table-compact">
-              <tbody>
-                {data.byManager.map((g) => (
-                  <tr key={g.key}>
-                    <td><b>{g.key}</b></td>
-                    <td style={{ textAlign: 'right' }}>{g.value}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+      <div className="panel">
+        <h3>Contrats en cours et stoppés par année (année = Contract Stop Date)</h3>
+        <ResponsiveContainer width="100%" height={300}>
+          <BarChart data={data.stopByYear || []}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="year" />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Legend />
+            <Bar dataKey="enCours" name="En cours" fill="#16a34a" />
+            <Bar dataKey="stoppes" name="Stoppés" fill="#dc2626" />
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
       <div className="panel">
