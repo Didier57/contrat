@@ -49,7 +49,13 @@ export default function Contrats() {
       return DEFAULT_VISIBLE;
     }
   });
-  const COLUMNS = useMemo(() => FIELDS.filter((f) => visible.includes(f.key)), [visible]);
+  const COLUMNS = useMemo(() => {
+    const cols = FIELDS.filter((f) => visible.includes(f.key));
+    const i = cols.findIndex((c) => c.key === 'customer_name');
+    if (i < 1) return cols; // déjà en premier (ou invisible)
+    const cust = cols[i];
+    return [cust, ...cols.slice(0, i), ...cols.slice(i + 1)]; // Customer Name toujours en tête
+  }, [visible]);
 
   const [search, setSearch] = useState('');
   const [colFilters, setColFilters] = useState({ contract_stop: ['0'] }); // Par défaut : contrat non stoppés
