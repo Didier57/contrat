@@ -1,8 +1,9 @@
 const express = require('express');
 const multer = require('multer');
-const db = require('../db');
 const { requireAuth, requireAdmin } = require('../auth');
 const { logAudit } = require('../audit');
+const db = require('../db');
+const { migrateLegacyRemarks } = require('../db');
 const { parseWorkbook } = require('../excel-import');
 const { FIELD_NAMES } = require('../contract-fields');
 
@@ -64,6 +65,7 @@ router.post('/', requireAdmin, (req, res) => {
   ).run(values);
 
   const row = db.prepare('SELECT * FROM contracts WHERE id = ?').get(info.lastInsertRowid);
+  migrateLegacyRemarks(); // remarque initiale => note(s) « sans date »
   logAudit({
     user: req.user,
     action: 'Ajout d\'un contrat',
@@ -105,6 +107,42 @@ router.put('/:id', requireAdmin, (req, res) => {
   res.json(row);
 });
 
+// GET /api/contracts/:id/remarks - notes Remarks Bac (plus récentes en premier)
+router.get('/:id/remarks', (req, res) => {
+  const existing = db.prepare('SELECT id FROM contracts WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
+  const rows = db.prepare(
+    `SELECT id, text, created_at FROM contract_remarks
+     WHERE contract_id = ?
+     ORDER BY (created_at IS NULL) ASC, created_at DESC, id DESC`
+  ).all(req.params.id);
+  res.json(rows);
+});
+
+// POST /api/contracts/:id/remarks - ajouter une note (date/heure enregistrées)
+router.post('/:id/remarks', requireAdmin, (req, res) => {
+  const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Contrat introuvable' });
+  const text = String(req.body.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Note vide' });
+
+  const createdAt = new Date().toISOString();
+  const info = db.prepare(
+    'INSERT INTO contract_remarks (contract_id, text, created_at) VALUES (?, ?, ?)'
+  ).run(req.params.id, text, createdAt);
+
+  // « Dernier commentaire » : miroir dans la colonne remarks_bac
+  db.prepare('UPDATE contracts SET remarks_bac = ? WHERE id = ?').run(text, req.params.id);
+
+  logAudit({
+    user: req.user,
+    action: 'Ajout d\'une note Remarks',
+    category: 'contract',
+    target: existing.customer_name || `contrat #${existing.id}`
+  });
+  res.status(201).json({ id: info.lastInsertRowid, contract_id: Number(req.params.id), text, created_at: createdAt });
+});
+
 // DELETE /api/contracts/:id
 router.delete('/:id', requireAdmin, (req, res) => {
   const existing = db.prepare('SELECT * FROM contracts WHERE id = ?').get(req.params.id);
@@ -140,6 +178,7 @@ router.post('/import', requireAdmin, upload.single('file'), (req, res) => {
     }
   });
   tx(rows);
+  migrateLegacyRemarks(); // chaque remarque importée devient une note « sans date »
 
   logAudit({
     user: req.user,

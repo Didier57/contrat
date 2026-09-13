@@ -270,16 +270,6 @@ export default function Contrats() {
     setTimeout(() => setToast(''), 2500);
   }
 
-  async function toggleBool(row, key) {
-    const next = Number(row[key]) === 1 ? 0 : 1;
-    try {
-      await api.put(`/contracts/${row.id}`, { [key]: next });
-      setAllRows((rows) => rows.map((r) => (r.id === row.id ? { ...r, [key]: next } : r)));
-    } catch (e) {
-      showToast(e.message);
-    }
-  }
-
   async function handleDelete() {
     if (!confirmDelete) return;
     setDeleting(true);
@@ -452,10 +442,8 @@ export default function Contrats() {
                           <input
                             type="checkbox"
                             checked={Number(v) === 1}
-                            disabled={!isAdmin}
+                            disabled
                             title={Number(v) === 1 ? 'Oui' : 'Non'}
-                            onClick={(e) => e.stopPropagation()}
-                            onChange={() => toggleBool(r, c.key)}
                           />
                         );
                         className = 'cell-check text-center';

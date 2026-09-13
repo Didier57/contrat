@@ -1,8 +1,17 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import { FIELDS } from '../contractFields.js';
 
 const FULL_WIDTH = ['customer_name', 'special_conditions', 'remarks_bac', 'remarks_bac_2'];
+
+function formatDateTime(dt) {
+  if (!dt) return '';
+  const d = new Date(dt);
+  if (isNaN(d.getTime())) return String(dt);
+  return d.toLocaleString('fr-FR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+}
 
 export default function ContractForm({ contract, onClose, onSaved }) {
   const isEdit = !!contract.id;
@@ -18,9 +27,39 @@ export default function ContractForm({ contract, onClose, onSaved }) {
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [notes, setNotes] = useState([]);
+  const [notesLoading, setNotesLoading] = useState(false);
+
+  useEffect(() => {
+    if (!isEdit) return;
+    setNotesLoading(true);
+    api.get(`/contracts/${contract.id}/remarks`)
+      .then(setNotes)
+      .catch(() => setNotes([]))
+      .finally(() => setNotesLoading(false));
+  }, [isEdit, contract.id]);
 
   function update(key, value) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function refreshNotes() {
+    try {
+      setNotes(await api.get(`/contracts/${contract.id}/remarks`));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  async function addNote() {
+    const text = window.prompt('Nouvelle note Remarks Bac :', '');
+    if (!text || !text.trim()) return;
+    try {
+      await api.post(`/contracts/${contract.id}/remarks`, { text: text.trim() });
+      refreshNotes();
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   async function handleSubmit(e) {
@@ -33,6 +72,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     setSaving(true);
     const body = {};
     for (const f of FIELDS) {
+      if (isEdit && f.key === 'remarks_bac') continue; // gérées via les notes
       let v = form[f.key];
       if (f.bool) {
         body[f.key] = v ? 1 : 0;
@@ -71,6 +111,56 @@ export default function ContractForm({ contract, onClose, onSaved }) {
           <div className="modal-body">
             {error && <div className="error-banner full">{error}</div>}
             {FIELDS.map((f) => {
+              if (f.key === 'remarks_bac') {
+                if (!isEdit) {
+                  return (
+                    <div className="field full" key={f.key}>
+                      <label>{f.label}</label>
+                      <textarea
+                        rows={3}
+                        value={form[f.key] ?? ''}
+                        onChange={(e) => update(f.key, e.target.value)}
+                        placeholder="Remarque initiale…"
+                      />
+                    </div>
+                  );
+                }
+                return (
+                  <div className="field full" key={f.key}>
+                    <div className="remarks-head">
+                      <label>{f.label} <span className="muted">(dernier commentaire affiché dans la table)</span></label>
+                      <button
+                        type="button"
+                        className="btn btn-xs btn-ghost"
+                        onClick={addNote}
+                        title="Ajouter une note"
+                      >+ Ajouter une note</button>
+                    </div>
+                    {notesLoading ? (
+                      <div className="empty-state"><span className="spinner" /></div>
+                    ) : notes.length === 0 ? (
+                      <div className="empty-state">Aucune note.</div>
+                    ) : (
+                      <table className="table table-compact remarks-table">
+                        <thead>
+                          <tr>
+                            <th>Note</th>
+                            <th className="remarks-date">Date d'ajout</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {notes.map((n) => (
+                            <tr key={n.id}>
+                              <td className="remarks-text">{n.text}</td>
+                              <td className="remarks-date">{formatDateTime(n.created_at)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
+                );
+              }
               const blank = form[f.key] === '' || form[f.key] == null || form[f.key] === 0;
               return (
                 <div className={`field ${FULL_WIDTH.includes(f.key) ? 'full' : ''}`} key={f.key}>

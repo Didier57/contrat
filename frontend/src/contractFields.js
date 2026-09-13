@@ -70,5 +70,5 @@ export const DEFAULT_VISIBLE = [
   'customer_name', 'sap_ewp', 'sap_eupac', 'sold_to_party', 'main_contractual_subject',
   'contract_type', 'service_type', 'contract_include', 'service_window', 'amount',
   'account_manager', 'contract_start', 'duration_month', 'contract_end', 'renew_month',
-  'contract_stop', 'contract_stop_date', 'product_group', 'customer_group'
+  'contract_stop', 'contract_stop_date', 'remarks_bac', 'product_group', 'customer_group'
 ];

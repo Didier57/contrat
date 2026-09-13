@@ -34,6 +34,16 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_contracts_end ON contracts(contract_end);
   CREATE INDEX IF NOT EXISTS idx_contracts_type ON contracts(contract_type);
 
+  CREATE TABLE IF NOT EXISTS contract_remarks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    contract_id INTEGER NOT NULL,
+    text TEXT NOT NULL,
+    created_at TEXT,
+    FOREIGN KEY (contract_id) REFERENCES contracts(id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_remarks_contract ON contract_remarks(contract_id);
+
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -74,4 +84,39 @@ if (!userCols.some((c) => c.name === 'active')) {
   db.exec('ALTER TABLE users ADD COLUMN active INTEGER NOT NULL DEFAULT 1');
 }
 
+// Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)
+// devient une note « sans date » dans contract_remarks (1 note par ligne).
+// Idempotent : rejoué à chaque démarrage, ne reconstruit que si le contenu a changé.
+function migrateLegacyRemarks() {
+  const rows = db.prepare(
+    `SELECT id, remarks_bac FROM contracts
+     WHERE remarks_bac IS NOT NULL AND TRIM(remarks_bac) != ''`
+  ).all();
+  const legacyNotes = db.prepare(
+    'SELECT text FROM contract_remarks WHERE contract_id = ? AND created_at IS NULL ORDER BY id ASC'
+  );
+  const hasDated = db.prepare(
+    'SELECT COUNT(*) AS c FROM contract_remarks WHERE contract_id = ? AND created_at IS NOT NULL'
+  );
+  const deleteLegacy = db.prepare(
+    'DELETE FROM contract_remarks WHERE contract_id = ? AND created_at IS NULL'
+  );
+  const insert = db.prepare(
+    'INSERT INTO contract_remarks (contract_id, text, created_at) VALUES (?, ?, NULL)'
+  );
+
+  for (const r of rows) {
+    if (hasDated.get(r.id).c) continue; // contrats avec notes datées : on ne touche pas
+    const expected = String(r.remarks_bac).split(/\r?\n/).map((s) => s.trim()).filter(Boolean);
+    if (!expected.length) continue;
+    const joined = legacyNotes.all(r.id).map((n) => n.text).join('\n');
+    if (joined !== expected.join('\n')) {
+      deleteLegacy.run(r.id);
+      for (const line of expected) insert.run(r.id, line);
+    }
+  }
+}
+migrateLegacyRemarks();
+
 module.exports = db;
+module.exports.migrateLegacyRemarks = migrateLegacyRemarks;
