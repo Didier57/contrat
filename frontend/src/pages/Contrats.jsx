@@ -52,7 +52,7 @@ export default function Contrats() {
   const COLUMNS = useMemo(() => FIELDS.filter((f) => visible.includes(f.key)), [visible]);
 
   const [search, setSearch] = useState('');
-  const [colFilters, setColFilters] = useState({});
+  const [colFilters, setColFilters] = useState({ contract_stop: ['0'] }); // Par défaut : contrat non stoppés
   const [filterOpen, setFilterOpen] = useState(null);
   const [dateRanges, setDateRanges] = useState({});
 
@@ -254,8 +254,9 @@ export default function Contrats() {
   }
 
   function hasActiveColFilter() {
-    return Object.entries(colFilters).some(([, v]) => Array.isArray(v) && v.length > 0)
-      || Object.values(dateRanges).some((r) => r && (r.from || r.to));
+    return Object.entries(colFilters).some(
+      ([k, v]) => k !== 'contract_stop' && Array.isArray(v) && v.length > 0
+    ) || Object.values(dateRanges).some((r) => r && (r.from || r.to));
   }
 
   function showToast(msg) {
@@ -320,7 +321,7 @@ export default function Contrats() {
 
   function clearFilters() {
     setSearch('');
-    setColFilters({});
+    setColFilters({ contract_stop: ['0'] }); // retour à la vue par défaut
     setDateRanges({});
     setSortKey('customer_name');
     setSortDir('asc');
