@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FileSignature, UserCog, Settings, UserCircle, LogOut, DatabaseBackup } from 'lucide-react';
+import { LayoutDashboard, FileSignature, UserCog, Settings, UserCircle, LogOut, DatabaseBackup, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 import ProfileModal from './ProfileModal.jsx';
+
+const THEME_KEY = 'contrat-theme';
 
 export default function Layout() {
   const { user, logout } = useAuth();
   const isAdmin = user?.role === 'admin';
   const [profileOpen, setProfileOpen] = useState(false);
+  const [theme, setTheme] = useState(() => (localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'));
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }, [theme]);
 
   return (
     <div className="layout">
@@ -39,6 +47,14 @@ export default function Layout() {
           )}
         </nav>
         <div className="topbar-user">
+          <button
+            className="btn btn-xs theme-toggle"
+            onClick={() => setTheme((t) => (t === 'dark' ? 'light' : 'dark'))}
+            title={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+            aria-label={theme === 'dark' ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          >
+            {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          </button>
           <span className="topbar-role">{user?.role === 'admin' ? 'Administrateur' : user?.role === 'editeur' ? 'Éditeur' : 'Lecteur'}</span>
           <span className="topbar-name">{user?.username}</span>
           <button className="btn btn-xs" onClick={() => setProfileOpen(true)} title="Mon profil">
