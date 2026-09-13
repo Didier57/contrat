@@ -8,7 +8,7 @@ import ConfirmDialog from '../components/ConfirmDialog.jsx';
 import ColumnFilter from '../components/ColumnFilter.jsx';
 import ColumnsPicker from '../components/ColumnsPicker.jsx';
 import ImportExcelModal from '../components/ImportExcelModal.jsx';
-import { Plus, FileSpreadsheet, Search, X, Filter, UploadCloud, Columns3, Pencil, Trash2, CalendarRange } from 'lucide-react';
+import { Plus, FileSpreadsheet, Search, X, Filter, UploadCloud, Columns3, Pencil, Trash2 } from 'lucide-react';
 
 const MOIS = ['jan', 'fév', 'mar', 'avr', 'mai', 'juin', 'juil', 'août', 'sep', 'oct', 'nov', 'déc'];
 
@@ -365,17 +365,6 @@ export default function Contrats() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ paddingLeft: 30 }}
           />
-        </div>
-        <div className="toolbar-date">
-          <span className="toolbar-date-label" title="Filtrer sur la colonne Contract end">
-            <CalendarRange size={13} /> Contract end
-          </span>
-          <input type="date" value={dateRanges.contract_end?.from || ''} onChange={(e) => setDateRange('contract_end', 'from', e.target.value)} title="Date de début" />
-          <span className="toolbar-date-sep">→</span>
-          <input type="date" value={dateRanges.contract_end?.to || ''} onChange={(e) => setDateRange('contract_end', 'to', e.target.value)} title="Date de fin" />
-          {(dateRanges.contract_end?.from || dateRanges.contract_end?.to) && (
-            <button className="btn btn-xs btn-ghost" onClick={() => clearDateRange('contract_end')} title="Effacer le filtre date"><X size={12} /></button>
-          )}
         </div>
         <button className="btn btn-xs btn-ghost" onClick={clearFilters}><X size={12} /> Réinitialiser</button>
       </div>
