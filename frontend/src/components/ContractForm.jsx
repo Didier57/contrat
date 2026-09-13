@@ -4,6 +4,7 @@ import { FIELDS } from '../contractFields.js';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const FULL_WIDTH = ['customer_name', 'special_conditions', 'remarks_bac', 'remarks_bac_2'];
+const CONTRACT_TYPES = ['Maintenance', 'Rental', 'Managed Services'];
 
 function formatDateTime(dt) {
   if (!dt) return '';
@@ -214,6 +215,16 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                       readOnly
                       title="Identifiant attribué automatiquement — non modifiable"
                     />
+                  ) : f.key === 'contract_type' ? (
+                    <select value={form[f.key] ?? ''} onChange={(e) => update(f.key, e.target.value)}>
+                      <option value="">—</option>
+                      {(form[f.key] && !CONTRACT_TYPES.includes(form[f.key])
+                        ? [form[f.key], ...CONTRACT_TYPES]
+                        : CONTRACT_TYPES
+                      ).map((t) => (
+                        <option key={t} value={t}>{t}</option>
+                      ))}
+                    </select>
                   ) : f.bool ? (
                     <div className="check-field">
                       <input
