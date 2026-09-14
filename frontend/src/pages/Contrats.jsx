@@ -418,8 +418,19 @@ export default function Contrats() {
             placeholder={`Rechercher (${searchableCount} colonnes)...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ paddingLeft: 30 }}
+            style={{ paddingLeft: 30, paddingRight: search ? 28 : undefined }}
           />
+          {search && (
+            <button
+              type="button"
+              className="search-clear"
+              onClick={() => setSearch('')}
+              title="Effacer la recherche"
+              aria-label="Effacer la recherche"
+            >
+              <X size={13} />
+            </button>
+          )}
         </div>
         <button className="btn btn-xs btn-ghost" onClick={clearFilters}><X size={12} /> Réinitialiser</button>
       </div>
