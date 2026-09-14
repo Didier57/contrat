@@ -13,7 +13,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Liste des utilisateurs (admin)
 router.get('/', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT id, username, role, email, active, totp_enabled, created_at FROM users ORDER BY username').all();
+  const rows = db.prepare("SELECT id, username, role, email, active, totp_enabled, (totp_secret IS NOT NULL AND totp_secret != '') AS totp_configured, created_at FROM users ORDER BY username").all();
   res.json(rows);
 });
 
@@ -170,6 +170,24 @@ router.post('/:id/reset-2fa', requireAdmin, (req, res) => {
     target: `Utilisateur « ${user.username} »`
   });
   res.json({ ok: true });
+});
+
+// Active / désactive la double authentification sans effacer le secret (admin)
+router.post('/:id/toggle-2fa', requireAdmin, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  const enabled = !!req.body.enabled;
+  if (enabled && !user.totp_secret) {
+    return res.status(400).json({ error: 'Aucune application configurée pour cet utilisateur — il doit d\'abord activer la double authentification depuis son profil.' });
+  }
+  db.prepare('UPDATE users SET totp_enabled = ? WHERE id = ?').run(enabled ? 1 : 0, user.id);
+  logAudit({
+    user: req.user,
+    action: enabled ? 'Activation de la double authentification (admin)' : 'Désactivation de la double authentification (admin)',
+    category: 'user',
+    target: `Utilisateur « ${user.username} »`
+  });
+  res.json({ ok: true, totp_enabled: enabled });
 });
 
 // Supprimer un utilisateur (admin)

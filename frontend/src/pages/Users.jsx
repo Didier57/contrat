@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck, Mail, ShieldOff } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck, Mail, RefreshCw, ShieldCheck, PowerOff } from 'lucide-react';
 
 const EMPTY = { username: '', email: '', password: '', role: 'lecteur', active: true };
 
@@ -179,8 +179,21 @@ export default function Users() {
     setError('');
     try {
       await api.post(`/users/${u.id}/reset-2fa`, {});
-      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, totp_enabled: 0 } : x)));
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, totp_enabled: 0, totp_configured: 0 } : x)));
       showToast(`Double authentification réinitialisée pour ${u.username}`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
+  async function handleToggle2fa(u, enabled) {
+    setError('');
+    try {
+      await api.post(`/users/${u.id}/toggle-2fa`, { enabled });
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, totp_enabled: enabled ? 1 : 0 } : x)));
+      showToast(enabled
+        ? `Double authentification réactivée pour ${u.username}`
+        : `Double authentification désactivée pour ${u.username}`);
     } catch (err) {
       showToast(err.message);
     }
@@ -238,7 +251,11 @@ export default function Users() {
                   <td>
                     <b>{u.username}</b>
                     {me && me.id === u.id ? <span className="badge badge-blue" style={{ marginLeft: 8 }}>vous</span> : null}
-                    {u.totp_enabled === 1 ? <span className="badge badge-green" style={{ marginLeft: 8 }} title="Double authentification activée">2FA</span> : null}
+                    {u.totp_enabled === 1 ? (
+                      <span className="badge badge-green" style={{ marginLeft: 8 }} title="Double authentification activée">2FA</span>
+                    ) : u.totp_configured === 1 ? (
+                      <span className="badge badge-gray" style={{ marginLeft: 8 }} title="Double authentification configurée mais désactivée">2FA désactivée</span>
+                    ) : null}
                   </td>
                   <td>{u.email || '—'}</td>
                   <td>
@@ -276,9 +293,22 @@ export default function Users() {
                     {u.totp_enabled === 1 ? (
                       <button
                         className="btn btn-xs btn-ghost"
+                        onClick={() => handleToggle2fa(u, false)}
+                        title="Désactiver la double authentification (le secret est conservé)"
+                      ><PowerOff size={13} /></button>
+                    ) : u.totp_configured === 1 ? (
+                      <button
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => handleToggle2fa(u, true)}
+                        title="Réactiver la double authentification"
+                      ><ShieldCheck size={13} /></button>
+                    ) : null}
+                    {u.totp_configured === 1 ? (
+                      <button
+                        className="btn btn-xs btn-ghost"
                         onClick={() => handleReset2fa(u)}
                         title="Réinitialiser la double authentification (si l'utilisateur a perdu son application)"
-                      ><ShieldOff size={13} /></button>
+                      ><RefreshCw size={13} /></button>
                     ) : null}
                     <button className="btn btn-xs btn-danger" onClick={() => openConfirmDelete(u)} title="Supprimer"><Trash2 size={13} /></button>
                   </td>
