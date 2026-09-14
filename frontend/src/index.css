@@ -656,16 +656,11 @@ table.table th .th-sort {
 }
 .clients-page table.table th .filter-funnel { position: static; flex-shrink: 0; }
 
-/* Cadre autour de la ligne d'en-tête (table Contrats) */
+/* Cadre autour de la ligne d'en-tête (table Contrats)
+   box-shadow (et non border) car un border ne reste pas collé
+   à un th position:sticky avec border-collapse:collapse */
 .clients-page table.table thead tr:first-child th {
-  border-top: 2px solid #94a3b8;
-  border-bottom: 2px solid #94a3b8;
-}
-.clients-page table.table thead tr:first-child th:first-child {
-  border-left: 2px solid #94a3b8;
-}
-.clients-page table.table thead tr:first-child th:last-child {
-  border-right: 2px solid #94a3b8;
+  box-shadow: inset 0 1px 0 #64748b, inset 1px 0 0 #64748b, inset -1px 0 0 #64748b, inset 0 -2px 0 #64748b;
 }
 
 /* ==== Table Report : en-têtes figées + défilement interne ==== */
@@ -1437,14 +1432,7 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
   border-color: var(--border);
 }
 [data-theme="dark"] .clients-page table.table thead tr:first-child th {
-  border-top-color: var(--border);
-  border-bottom-color: var(--border);
-}
-[data-theme="dark"] .clients-page table.table thead tr:first-child th:first-child {
-  border-left-color: var(--border);
-}
-[data-theme="dark"] .clients-page table.table thead tr:first-child th:last-child {
-  border-right-color: var(--border);
+  box-shadow: inset 0 1px 0 #475569, inset 1px 0 0 #475569, inset -1px 0 0 #475569, inset 0 -2px 0 #475569;
 }
 [data-theme="dark"] .dropzone { border-color: var(--border); }
 [data-theme="dark"] .import-preview { border-color: var(--border); }
