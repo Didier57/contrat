@@ -29,6 +29,7 @@ function publicUser(user) {
 
 // Finalise une connexion réussie (notification, journal, jeton + profil)
 function completeLogin(user, res) {
+  db.prepare("UPDATE users SET last_login = datetime('now','localtime') WHERE id = ?").run(user.id);
   sendLoginNotification(user);
   logAudit({ user, action: 'Connexion', category: 'login', target: user.username });
   res.json({ token: sign(user), user: publicUser(user) });

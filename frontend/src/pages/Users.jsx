@@ -241,7 +241,8 @@ export default function Users() {
                 <th style={{ width: 140 }}>Rôle</th>
                 <th style={{ width: 90 }}>Statut</th>
                 <th style={{ width: 140 }}>Créé le</th>
-                <th style={{ width: 150 }}>Actions</th>
+                <th style={{ width: 150 }}>Dernière connexion</th>
+                <th style={{ width: 170 }}>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -271,6 +272,7 @@ export default function Users() {
                       : <span className="badge badge-red">Inactif</span>}
                   </td>
                   <td>{u.created_at ? u.created_at.slice(0, 10) : '—'}</td>
+                  <td className="nowrap">{u.last_login ? u.last_login.slice(0, 16) : '—'}</td>
                   <td className="row-actions">
                     <button className="btn btn-xs btn-ghost" onClick={() => openEdit(u)} title="Modifier"><Pencil size={13} /></button>
                     {u.active === 1 ? (

@@ -13,7 +13,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Liste des utilisateurs (admin)
 router.get('/', requireAdmin, (req, res) => {
-  const rows = db.prepare("SELECT id, username, role, email, active, totp_enabled, (totp_secret IS NOT NULL AND totp_secret != '') AS totp_configured, created_at FROM users ORDER BY username").all();
+  const rows = db.prepare("SELECT id, username, role, email, active, totp_enabled, (totp_secret IS NOT NULL AND totp_secret != '') AS totp_configured, last_login, created_at FROM users ORDER BY username").all();
   res.json(rows);
 });
 

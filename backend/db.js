@@ -27,6 +27,7 @@ db.exec(`
     notify_expiry_last TEXT,
     totp_secret TEXT,
     totp_enabled INTEGER NOT NULL DEFAULT 0,
+    last_login TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
   );
 
@@ -110,6 +111,9 @@ if (!userCols.some((c) => c.name === 'totp_secret')) {
 }
 if (!userCols.some((c) => c.name === 'totp_enabled')) {
   db.exec('ALTER TABLE users ADD COLUMN totp_enabled INTEGER NOT NULL DEFAULT 0');
+}
+if (!userCols.some((c) => c.name === 'last_login')) {
+  db.exec('ALTER TABLE users ADD COLUMN last_login TEXT');
 }
 
 // Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)
