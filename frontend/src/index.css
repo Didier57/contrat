@@ -656,6 +656,18 @@ table.table th .th-sort {
 }
 .clients-page table.table th .filter-funnel { position: static; flex-shrink: 0; }
 
+/* Cadre autour de la ligne d'en-tête (table Contrats) */
+.clients-page table.table thead tr:first-child th {
+  border-top: 1px solid #94a3b8;
+  border-bottom: 1px solid #94a3b8;
+}
+.clients-page table.table thead tr:first-child th:first-child {
+  border-left: 1px solid #94a3b8;
+}
+.clients-page table.table thead tr:first-child th:last-child {
+  border-right: 1px solid #94a3b8;
+}
+
 /* ==== Table Report : en-têtes figées + défilement interne ==== */
 .report-wrap {
   max-height: calc(100vh - 190px);
@@ -1423,6 +1435,16 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
 [data-theme="dark"] table.table.report-bordered th,
 [data-theme="dark"] table.table.report-bordered td {
   border-color: var(--border);
+}
+[data-theme="dark"] .clients-page table.table thead tr:first-child th {
+  border-top-color: var(--border);
+  border-bottom-color: var(--border);
+}
+[data-theme="dark"] .clients-page table.table thead tr:first-child th:first-child {
+  border-left-color: var(--border);
+}
+[data-theme="dark"] .clients-page table.table thead tr:first-child th:last-child {
+  border-right-color: var(--border);
 }
 [data-theme="dark"] .dropzone { border-color: var(--border); }
 [data-theme="dark"] .import-preview { border-color: var(--border); }
