@@ -386,6 +386,26 @@ body {
   margin-bottom: 4px;
 }
 
+.qr-2fa {
+  display: block;
+  margin: 10px auto;
+  width: 200px;
+  height: 200px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.field-hint code {
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+  word-break: break-all;
+}
+
 .field input[type="number"] { width: 100%; }
 
 .success-banner {

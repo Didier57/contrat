@@ -16,6 +16,9 @@ export default function Login() {
   const [mode, setMode] = useState(searchParams.get('forgot') ? 'forgot' : 'login'); // 'login' | 'forgot' | 'forgotDone'
   const [resetEmail, setResetEmail] = useState('');
   const [resetLoading, setResetLoading] = useState(false);
+  const [challenge, setChallenge] = useState('');
+  const [otp, setOtp] = useState('');
+  const [verifying, setVerifying] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -23,6 +26,11 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await api.login(username, password);
+      if (res.twoFactorRequired) {
+        setChallenge(res.challenge);
+        setOtp('');
+        return;
+      }
       setSession(res.token, res.user);
       login(res.user);
       navigate('/', { replace: true });
@@ -30,6 +38,23 @@ export default function Login() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function handleVerify(e) {
+    e.preventDefault();
+    setError('');
+    setVerifying(true);
+    try {
+      const res = await api.post('/auth/login/verify', { challenge, code: otp });
+      setSession(res.token, res.user);
+      login(res.user);
+      navigate('/', { replace: true });
+    } catch (err) {
+      setError(err.message);
+      if (/reconnectez/i.test(err.message)) setChallenge('');
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -89,6 +114,43 @@ export default function Login() {
             ← Retour à la connexion
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (challenge) {
+    return (
+      <div className="login-wrap">
+        <form className="login-card" onSubmit={handleVerify}>
+          <div className="logo">✆</div>
+          <h1>Vérification en deux étapes</h1>
+          <p>Entrez le code à 6 chiffres affiché par votre application d'authentification.</p>
+          {error && <div className="error-banner">{error}</div>}
+          <div className="field">
+            <label>Code de vérification</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              maxLength={6}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              autoFocus
+              style={{ textAlign: 'center', letterSpacing: 6, fontSize: 20 }}
+            />
+          </div>
+          <button className="btn btn-primary btn-block" disabled={verifying || otp.length < 6}>
+            {verifying ? <span className="spinner" /> : 'Valider'}
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost btn-block"
+            onClick={() => { setChallenge(''); setOtp(''); setError(''); }}
+            style={{ marginTop: 8 }}
+          >
+            ← Retour
+          </button>
+        </form>
       </div>
     );
   }

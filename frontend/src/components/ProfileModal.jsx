@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { X, Send } from 'lucide-react';
+import { X, Send, ShieldCheck } from 'lucide-react';
 
 export default function ProfileModal({ onClose }) {
   const { user, updateUser } = useAuth();
@@ -20,6 +20,11 @@ export default function ProfileModal({ onClose }) {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState('');
   const [sendingNow, setSendingNow] = useState(false);
+  const [totpEnabled, setTotpEnabled] = useState(!!user?.totp_enabled);
+  const [setup, setSetup] = useState(null);
+  const [code2fa, setCode2fa] = useState('');
+  const [busy2fa, setBusy2fa] = useState(false);
+  const [msg2fa, setMsg2fa] = useState('');
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -57,6 +62,57 @@ export default function ProfileModal({ onClose }) {
       setError(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function start2fa() {
+    setMsg2fa('');
+    setError('');
+    setBusy2fa(true);
+    try {
+      const res = await api.post('/auth/2fa/setup');
+      setSetup(res);
+      setCode2fa('');
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy2fa(false);
+    }
+  }
+
+  async function confirm2fa() {
+    setMsg2fa('');
+    setError('');
+    setBusy2fa(true);
+    try {
+      await api.post('/auth/2fa/enable', { code: code2fa });
+      setTotpEnabled(true);
+      setSetup(null);
+      setCode2fa('');
+      setMsg2fa('Double authentification activée.');
+      updateUser({ ...user, totp_enabled: true });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy2fa(false);
+    }
+  }
+
+  async function disable2fa() {
+    setMsg2fa('');
+    setError('');
+    setBusy2fa(true);
+    try {
+      await api.post('/auth/2fa/disable', { code: code2fa });
+      setTotpEnabled(false);
+      setSetup(null);
+      setCode2fa('');
+      setMsg2fa('Double authentification désactivée.');
+      updateUser({ ...user, totp_enabled: false });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy2fa(false);
     }
   }
 
@@ -179,6 +235,75 @@ export default function ProfileModal({ onClose }) {
                 </div>
               </>
             )}
+            <hr className="profile-sep" />
+            <div className="profile-section-title">Double authentification (optionnel)</div>
+            <div className="field full">
+              {msg2fa && <div className="success-banner" style={{ marginBottom: 10 }}>{msg2fa}</div>}
+              {totpEnabled ? (
+                <>
+                  <p className="field-hint">
+                    La double authentification est <strong>activée</strong> sur votre compte. À chaque
+                    connexion, un code de votre application d'authentification sera demandé.
+                  </p>
+                  <div className="form-row" style={{ alignItems: 'flex-end' }}>
+                    <div className="field">
+                      <label>Code de vérification (pour désactiver)</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={code2fa}
+                        onChange={(e) => setCode2fa(e.target.value.replace(/\D/g, ''))}
+                      />
+                    </div>
+                    <div className="field">
+                      <button type="button" className="btn" onClick={disable2fa} disabled={busy2fa || code2fa.length < 6}>
+                        {busy2fa ? <span className="spinner" /> : 'Désactiver'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : setup ? (
+                <>
+                  <p className="field-hint">
+                    Scannez ce QR code avec votre application d'authentification (Bitwarden,
+                    Google/Microsoft Authenticator, Duo Mobile…), puis saisissez le code affiché.
+                  </p>
+                  {setup.qr && <img className="qr-2fa" src={setup.qr} alt="QR code de configuration" />}
+                  <p className="field-hint" style={{ textAlign: 'center' }}>
+                    Saisie manuelle : <code>{setup.secret}</code>
+                  </p>
+                  <div className="form-row" style={{ alignItems: 'flex-end' }}>
+                    <div className="field">
+                      <label>Code affiché par l'application</label>
+                      <input
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={6}
+                        value={code2fa}
+                        onChange={(e) => setCode2fa(e.target.value.replace(/\D/g, ''))}
+                        autoFocus
+                      />
+                    </div>
+                    <div className="field">
+                      <button type="button" className="btn btn-primary" onClick={confirm2fa} disabled={busy2fa || code2fa.length < 6}>
+                        {busy2fa ? <span className="spinner" /> : 'Activer'}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="field-hint">
+                    Protégez votre compte avec une application d'authentification (Bitwarden,
+                    Google/Microsoft Authenticator, Duo Mobile…). Cette protection reste facultative.
+                  </p>
+                  <button type="button" className="btn" onClick={start2fa} disabled={busy2fa}>
+                    <ShieldCheck size={14} /> {busy2fa ? <span className="spinner" /> : 'Activer la double authentification'}
+                  </button>
+                </>
+              )}
+            </div>
             {done && <div className="success-banner full">{done}</div>}
           </div>
           <div className="modal-footer">

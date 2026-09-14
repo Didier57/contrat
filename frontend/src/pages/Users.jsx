@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck, Mail } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Activity, UserX, UserCheck, Mail, ShieldOff } from 'lucide-react';
 
 const EMPTY = { username: '', email: '', password: '', role: 'lecteur', active: true };
 
@@ -175,6 +175,17 @@ export default function Users() {
     }
   }
 
+  async function handleReset2fa(u) {
+    setError('');
+    try {
+      await api.post(`/users/${u.id}/reset-2fa`, {});
+      setUsers((prev) => prev.map((x) => (x.id === u.id ? { ...x, totp_enabled: 0 } : x)));
+      showToast(`Double authentification réinitialisée pour ${u.username}`);
+    } catch (err) {
+      showToast(err.message);
+    }
+  }
+
   async function handleResend(u) {
     setResendingId(u.id);
     setError('');
@@ -224,7 +235,11 @@ export default function Users() {
               {users.map((u) => (
                 <tr key={u.id} className={u.active === 1 ? '' : 'cell-muted'}>
                   <td>{u.id}</td>
-                  <td><b>{u.username}</b>{me && me.id === u.id ? <span className="badge badge-blue" style={{ marginLeft: 8 }}>vous</span> : null}</td>
+                  <td>
+                    <b>{u.username}</b>
+                    {me && me.id === u.id ? <span className="badge badge-blue" style={{ marginLeft: 8 }}>vous</span> : null}
+                    {u.totp_enabled === 1 ? <span className="badge badge-green" style={{ marginLeft: 8 }} title="Double authentification activée">2FA</span> : null}
+                  </td>
                   <td>{u.email || '—'}</td>
                   <td>
                     {u.role === 'admin'
@@ -257,6 +272,13 @@ export default function Users() {
                         disabled={resendingId === u.id}
                         title="Renvoyer l'invitation par email"
                       ><Mail size={13} /></button>
+                    ) : null}
+                    {u.totp_enabled === 1 ? (
+                      <button
+                        className="btn btn-xs btn-ghost"
+                        onClick={() => handleReset2fa(u)}
+                        title="Réinitialiser la double authentification (si l'utilisateur a perdu son application)"
+                      ><ShieldOff size={13} /></button>
                     ) : null}
                     <button className="btn btn-xs btn-danger" onClick={() => openConfirmDelete(u)} title="Supprimer"><Trash2 size={13} /></button>
                   </td>

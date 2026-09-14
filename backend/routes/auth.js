@@ -1,14 +1,43 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+const QRCode = require('qrcode');
 const db = require('../db');
+const { JWT_SECRET } = require('../config');
 const { sign, requireAuth, requireEditor } = require('../auth');
 const { sendLoginNotification, sendPasswordEmailWithToken, sendExpiryReminderForUser, smtpConfigured } = require('../mailer');
 const { createResetToken, verifyResetToken, consumeResetToken } = require('../reset-token');
+const { generateSecret, verifyTotp, keyuri } = require('../totp');
 const { logAudit } = require('../audit');
 
 const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function publicUser(user) {
+  return {
+    id: user.id,
+    username: user.username,
+    role: user.role,
+    email: user.email,
+    notify_expiry: user.notify_expiry === 1,
+    notify_expiry_days: user.notify_expiry_days ?? 7,
+    notify_expiry_hour: user.notify_expiry_hour ?? 8,
+    totp_enabled: user.totp_enabled === 1
+  };
+}
+
+// Finalise une connexion réussie (notification, journal, jeton + profil)
+function completeLogin(user, res) {
+  sendLoginNotification(user);
+  logAudit({ user, action: 'Connexion', category: 'login', target: user.username });
+  res.json({ token: sign(user), user: publicUser(user) });
+}
+
+// Jeton éphémère (5 min) attestant que le mot de passe a bien été validé (étape 2FA)
+function challengeToken(user) {
+  return jwt.sign({ id: user.id, p: '2fa' }, JWT_SECRET, { expiresIn: '5m' });
+}
 
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -24,27 +53,41 @@ router.post('/login', (req, res) => {
     logAudit({ username: user.username, action: 'Tentative de connexion (compte désactivé)', category: 'login' });
     return res.status(401).json({ error: 'Compte désactivé — contactez un administrateur' });
   }
-  // Notification de connexion aux autres admins (si activée) — non bloquant
-  sendLoginNotification(user);
-  logAudit({ user, action: 'Connexion', category: 'login', target: user.username });
-  res.json({
-    token: sign(user),
-    user: {
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      email: user.email,
-      notify_expiry: user.notify_expiry === 1,
-      notify_expiry_days: user.notify_expiry_days ?? 7,
-      notify_expiry_hour: user.notify_expiry_hour ?? 8
-    }
-  });
+  // Double authentification activée : mot de passe validé, on demande le code OTP
+  if (user.totp_enabled === 1) {
+    return res.json({ twoFactorRequired: true, challenge: challengeToken(user) });
+  }
+  completeLogin(user, res);
+});
+
+// Deuxième étape de connexion : vérification du code TOTP
+router.post('/login/verify', (req, res) => {
+  const { challenge, code } = req.body || {};
+  if (!challenge) return res.status(400).json({ error: 'Demande invalide — reconnectez-vous' });
+  let payload;
+  try {
+    payload = jwt.verify(challenge, JWT_SECRET);
+  } catch {
+    return res.status(400).json({ error: 'Délai dépassé — reconnectez-vous' });
+  }
+  if (!payload || payload.p !== '2fa') {
+    return res.status(400).json({ error: 'Demande invalide — reconnectez-vous' });
+  }
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(payload.id);
+  if (!user || user.active !== 1 || user.totp_enabled !== 1) {
+    return res.status(401).json({ error: 'Authentification impossible — reconnectez-vous' });
+  }
+  if (!verifyTotp(code, user.totp_secret)) {
+    logAudit({ user, action: 'Échec de la double authentification', category: 'login', target: user.username });
+    return res.status(401).json({ error: 'Code de vérification invalide' });
+  }
+  completeLogin(user, res);
 });
 
 router.get('/me', requireAuth, (req, res) => {
-  const user = db.prepare('SELECT id, username, role, email, notify_expiry, notify_expiry_days, notify_expiry_hour FROM users WHERE id = ?').get(req.user.id);
+  const user = db.prepare('SELECT id, username, role, email, notify_expiry, notify_expiry_days, notify_expiry_hour, totp_enabled FROM users WHERE id = ?').get(req.user.id);
   if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
-  res.json({ ...user, notify_expiry: user.notify_expiry === 1 });
+  res.json({ ...user, notify_expiry: user.notify_expiry === 1, totp_enabled: user.totp_enabled === 1 });
 });
 
 // L'utilisateur modifie ses propres informations (username, email, mot de passe)
@@ -175,6 +218,58 @@ router.put('/preferences', requireAuth, (req, res) => {
   if (json.length > 50000) return res.status(413).json({ error: 'Préférences trop volumineuses' });
   db.prepare('UPDATE users SET preferences = ? WHERE id = ?').run(json, req.user.id);
   res.json({ ok: true });
+});
+
+// --- Double authentification (TOTP, optionnelle) ---
+
+// Génère un secret + QR code pour l'enrôlement (n'active pas encore la 2FA)
+router.post('/2fa/setup', requireAuth, async (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
+  if (user.totp_enabled === 1) {
+    return res.status(400).json({ error: 'La double authentification est déjà activée' });
+  }
+  const secret = generateSecret();
+  db.prepare('UPDATE users SET totp_secret = ?, totp_enabled = 0 WHERE id = ?').run(secret, user.id);
+  const uri = keyuri(secret, user.username);
+  let qr = null;
+  try {
+    qr = await QRCode.toDataURL(uri, { width: 220, margin: 1 });
+  } catch {
+    qr = null; // le client peut toujours saisir le secret manuellement
+  }
+  res.json({ secret, otpauth_url: uri, qr });
+});
+
+// Active la 2FA après vérification du premier code
+router.post('/2fa/enable', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
+  if (user.totp_enabled === 1) return res.status(400).json({ error: 'La double authentification est déjà activée' });
+  if (!user.totp_secret) return res.status(400).json({ error: 'Commencez par générer le QR code d\'activation' });
+  if (!verifyTotp((req.body || {}).code, user.totp_secret)) {
+    return res.status(400).json({ error: 'Code invalide — vérifiez l\'heure de votre téléphone et réessayez' });
+  }
+  db.prepare('UPDATE users SET totp_enabled = 1 WHERE id = ?').run(user.id);
+  logAudit({ user: req.user, action: 'Activation de la double authentification', category: 'profile', target: user.username });
+  res.json({ ok: true, totp_enabled: true });
+});
+
+// Désactive la 2FA : code OTP valide OU mot de passe correct
+router.post('/2fa/disable', requireAuth, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.user.id);
+  if (!user) return res.status(401).json({ error: 'Utilisateur introuvable' });
+  const { code, password } = req.body || {};
+  if (user.totp_enabled === 1) {
+    const codeOk = verifyTotp(code, user.totp_secret);
+    const passOk = !!password && bcrypt.compareSync(password, user.password_hash);
+    if (!codeOk && !passOk) {
+      return res.status(400).json({ error: 'Saisissez un code valide ou votre mot de passe pour désactiver' });
+    }
+  }
+  db.prepare('UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?').run(user.id);
+  logAudit({ user: req.user, action: 'Désactivation de la double authentification', category: 'profile', target: user.username });
+  res.json({ ok: true, totp_enabled: false });
 });
 
 // Mot de passe oublié : envoie un lien de réinitialisation si l'email existe

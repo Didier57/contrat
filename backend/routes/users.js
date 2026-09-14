@@ -13,7 +13,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Liste des utilisateurs (admin)
 router.get('/', requireAdmin, (req, res) => {
-  const rows = db.prepare('SELECT id, username, role, email, active, created_at FROM users ORDER BY username').all();
+  const rows = db.prepare('SELECT id, username, role, email, active, totp_enabled, created_at FROM users ORDER BY username').all();
   res.json(rows);
 });
 
@@ -155,6 +155,21 @@ router.post('/:id/resend-invite', requireAdmin, async (req, res) => {
     detail: user.email
   });
   res.json({ ok: true, emailSent: true });
+});
+
+// Réinitialise (désactive) la double authentification d'un utilisateur (admin)
+// Utile si l'utilisateur a perdu son application d'authentification.
+router.post('/:id/reset-2fa', requireAdmin, (req, res) => {
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Utilisateur introuvable' });
+  db.prepare('UPDATE users SET totp_secret = NULL, totp_enabled = 0 WHERE id = ?').run(user.id);
+  logAudit({
+    user: req.user,
+    action: 'Réinitialisation de la double authentification',
+    category: 'user',
+    target: `Utilisateur « ${user.username} »`
+  });
+  res.json({ ok: true });
 });
 
 // Supprimer un utilisateur (admin)
