@@ -166,6 +166,9 @@ export default function Login() {
           <label>Nom d'utilisateur</label>
           <input
             type="text"
+            id="username"
+            name="username"
+            autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoFocus
@@ -175,6 +178,9 @@ export default function Login() {
           <label>Mot de passe</label>
           <input
             type="password"
+            id="password"
+            name="password"
+            autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
