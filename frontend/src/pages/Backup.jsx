@@ -383,6 +383,7 @@ export default function Backup() {
           <div className="field">
             <label>Jour de la semaine</label>
             <select value={smb.day} onChange={(e) => setSmbField('day', Number(e.target.value))}>
+              <option value={7}>Tous les jours</option>
               {DAYS.map((d, i) => <option key={i} value={i}>{d}</option>)}
             </select>
           </div>

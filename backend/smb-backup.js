@@ -77,7 +77,7 @@ async function runDueBackup() {
   if (lastLocal && todayKey(lastLocal) === today) return { skipped: 'déjà effectuée aujourd\'hui' };
   const day = getInt('smb.day', 1);
   const hour = getInt('smb.hour', 3);
-  if (now.getDay() !== day) return { skipped: 'jour non planifié' };
+  if (day !== 7 && now.getDay() !== day) return { skipped: 'jour non planifié' };
   if (now.getHours() < hour) return { skipped: 'heure non atteinte' };
   return await runBackup('planifiée');
 }

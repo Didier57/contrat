@@ -130,7 +130,7 @@ router.put('/smb', (req, res) => {
   if (b.pass !== undefined && b.pass !== '') setSetting('smb.pass', String(b.pass));
   if (b.enabled !== undefined) setSetting('smb.enabled', b.enabled ? '1' : '0');
   if (b.auto_enabled !== undefined) setSetting('smb.auto_enabled', b.auto_enabled ? '1' : '0');
-  if (b.day !== undefined) setSetting('smb.day', String(Math.min(6, Math.max(0, parseInt(b.day, 10) || 0))));
+  if (b.day !== undefined) setSetting('smb.day', String(Math.min(7, Math.max(0, parseInt(b.day, 10) || 0))));
   if (b.hour !== undefined) setSetting('smb.hour', String(Math.min(23, Math.max(0, parseInt(b.hour, 10) || 0))));
   if (b.keep !== undefined) setSetting('smb.keep', String(Math.min(365, Math.max(1, parseInt(b.keep, 10) || 7))));
   logAudit({ user: req.user, action: 'Modification de la configuration SMB', category: 'backup', target: getSmbConfig().host });
