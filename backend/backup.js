@@ -101,4 +101,96 @@ function backupFilename() {
   return `contrats_backup_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.xlsx`;
 }
 
-module.exports = { buildBackupWorkbook, importBackup, backupFilename, summary };
+// ---------------------------------------------------------------------------
+// Sauvegarde / restauration au format SQL (dump complet de la base)
+// ---------------------------------------------------------------------------
+
+function quoteIdent(name) {
+  return `"${String(name).replace(/"/g, '""')}"`;
+}
+
+function sqlLiteral(v) {
+  if (v === null || v === undefined) return 'NULL';
+  if (typeof v === 'number') return Number.isFinite(v) ? String(v) : 'NULL';
+  if (typeof v === 'bigint') return String(v);
+  if (Buffer.isBuffer(v)) return `X'${v.toString('hex')}'`;
+  return `'${String(v).replace(/'/g, "''")}'`;
+}
+
+// Toutes les tables utilisateur (hors objets internes SQLite), tables avant index.
+function sqlObjects() {
+  return db
+    .prepare(
+      `SELECT type, name, sql FROM sqlite_master
+        WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
+        ORDER BY CASE type WHEN 'table' THEN 0 WHEN 'index' THEN 1 ELSE 2 END, rowid`
+    )
+    .all();
+}
+
+// Dump SQL texte de toute la base (structure + données), rejouable tel quel.
+function sqlDump() {
+  const objects = sqlObjects();
+  const lines = [];
+  lines.push('-- Sauvegarde SQL de la base Contrats');
+  lines.push(`-- Genere le ${new Date().toISOString()}`);
+  lines.push('PRAGMA foreign_keys=OFF;');
+  lines.push('BEGIN TRANSACTION;');
+  for (const o of objects) {
+    if (o.type === 'table') lines.push(`DROP TABLE IF EXISTS ${quoteIdent(o.name)};`);
+  }
+  for (const o of objects) lines.push(`${o.sql};`);
+  for (const o of objects) {
+    if (o.type !== 'table') continue;
+    const table = quoteIdent(o.name);
+    const cols = tableColumns(o.name);
+    const rows = db.prepare(`SELECT * FROM ${table}`).all();
+    if (!rows.length) continue;
+    const colList = cols.map(quoteIdent).join(', ');
+    for (const r of rows) {
+      lines.push(`INSERT INTO ${table} (${colList}) VALUES (${cols.map((c) => sqlLiteral(r[c])).join(', ')});`);
+    }
+  }
+  lines.push('COMMIT;');
+  lines.push('PRAGMA foreign_keys=ON;');
+  return lines.join('\n') + '\n';
+}
+
+// Restaure la base depuis un dump SQL. Exécution transactionnelle : toute erreur
+// (ou une base sans administrateur) annule la restauration.
+function restoreSql(buffer) {
+  let sql = buffer.toString('utf8').replace(/^\uFEFF/, '');
+  if (!sql.trim()) throw new Error('Fichier SQL vide');
+  if (!/\bCREATE\s+TABLE\b/i.test(sql) && !/\bINSERT\s+INTO\b/i.test(sql)) {
+    throw new Error("Ce fichier ne ressemble pas à une sauvegarde SQL (aucun CREATE TABLE / INSERT INTO)");
+  }
+  // On gère nous-mêmes la transaction et les clés étrangères.
+  sql = sql.replace(/^\s*(BEGIN(?:\s+TRANSACTION)?;|COMMIT;|PRAGMA\s+foreign_keys\s*=\s*(?:ON|OFF);)\s*$/gim, '');
+
+  const before = summary();
+  db.pragma('foreign_keys = OFF');
+  try {
+    const run = db.transaction(() => {
+      db.exec(sql);
+      let admins = 0;
+      try {
+        admins = db.prepare(`SELECT COUNT(*) AS c FROM users WHERE role = 'admin'`).get().c;
+      } catch {
+        admins = 0;
+      }
+      if (!admins) throw new Error('La sauvegarde ne contient aucun administrateur — restauration annulée');
+    });
+    run();
+  } finally {
+    db.pragma('foreign_keys = ON');
+  }
+  return { before, after: summary() };
+}
+
+function sqlFilename() {
+  const d = new Date();
+  const p = (n) => String(n).padStart(2, '0');
+  return `contrats_db_${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}.sql`;
+}
+
+module.exports = { buildBackupWorkbook, importBackup, backupFilename, summary, sqlDump, restoreSql, sqlFilename };

@@ -2,7 +2,7 @@ const express = require('express');
 const multer = require('multer');
 const db = require('../db');
 const { requireAuth, requireAdmin } = require('../auth');
-const { buildBackupWorkbook, importBackup, backupFilename } = require('../backup');
+const { buildBackupWorkbook, importBackup, backupFilename, sqlDump, restoreSql, sqlFilename } = require('../backup');
 const { sendMail, smtpConfigured } = require('../mailer');
 const { logAudit } = require('../audit');
 
@@ -21,6 +21,32 @@ router.get('/export', (req, res) => {
   res.setHeader('Content-Disposition', `attachment; filename="${backupFilename()}"`);
   res.setHeader('Content-Length', buf.length);
   res.send(buf);
+});
+
+// GET /api/backup/sql — télécharge un dump SQL complet (structure + données)
+router.get('/sql', (req, res) => {
+  const sql = sqlDump();
+  logAudit({ user: req.user, action: 'Export de la sauvegarde SQL', category: 'backup', target: sqlFilename() });
+  res.setHeader('Content-Type', 'application/sql; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${sqlFilename()}"`);
+  res.setHeader('Content-Length', Buffer.byteLength(sql));
+  res.send(sql);
+});
+
+// POST /api/backup/sql/restore — restaure la base depuis un dump SQL
+router.post('/sql/restore', upload.single('file'), (req, res) => {
+  if (!req.file) {
+    logAudit({ user: req.user, action: 'Échec de la restauration SQL', category: 'backup', detail: 'fichier manquant' });
+    return res.status(400).json({ error: 'Fichier SQL manquant' });
+  }
+  try {
+    const result = restoreSql(req.file.buffer);
+    logAudit({ user: req.user, action: 'Restauration SQL de la base', category: 'backup', target: req.file.originalname });
+    res.json({ ok: true, message: 'Base restaurée depuis le fichier SQL', ...result });
+  } catch (e) {
+    logAudit({ user: req.user, action: 'Échec de la restauration SQL', category: 'backup', target: req.file.originalname, detail: e.message });
+    res.status(400).json({ error: `Restauration impossible : ${e.message}` });
+  }
 });
 
 // POST /api/backup/import — restaure la base depuis un classeur sauvegardé

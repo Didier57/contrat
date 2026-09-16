@@ -1,15 +1,18 @@
 import React, { useRef, useState } from 'react';
 import { api } from '../api.js';
 import ConfirmDialog from '../components/ConfirmDialog.jsx';
-import { DatabaseBackup, Download, Mail, Upload, FileSpreadsheet, ShieldAlert } from 'lucide-react';
+import { DatabaseBackup, Download, Mail, Upload, FileSpreadsheet, FileCode, ShieldAlert } from 'lucide-react';
 
 export default function Backup() {
   const fileRef = useRef(null);
+  const sqlFileRef = useRef(null);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
   const [toast, setToast] = useState('');
   const [confirmFile, setConfirmFile] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [confirmSqlFile, setConfirmSqlFile] = useState(null);
+  const [importingSql, setImportingSql] = useState(false);
 
   function showToast(msg) {
     setToast(msg);
@@ -63,12 +66,46 @@ export default function Backup() {
     }
   }
 
+  async function handleExportSql() {
+    setBusy('export-sql');
+    setError('');
+    try {
+      await api.download('/backup/sql');
+      showToast('Sauvegarde SQL de la base générée');
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  function onSqlFileChosen(e) {
+    const f = e.target.files && e.target.files[0];
+    if (f) setConfirmSqlFile(f);
+    e.target.value = '';
+  }
+
+  async function handleImportSql() {
+    if (!confirmSqlFile) return;
+    setImportingSql(true);
+    setError('');
+    try {
+      const r = await api.upload('/backup/sql/restore', confirmSqlFile);
+      showToast(r.message);
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setImportingSql(false);
+      setConfirmSqlFile(null);
+    }
+  }
+
   return (
     <div className="settings-page">
       <div className="page-header">
         <div>
           <h2>Sauvegarde</h2>
-          <div className="sub">Exporter, restaurer ou envoyer la base de données au format Excel</div>
+          <div className="sub">Exporter, restaurer ou envoyer la base de données au format Excel ou SQL</div>
         </div>
       </div>
 
@@ -100,6 +137,27 @@ export default function Backup() {
         </div>
       </div>
 
+      <div className="panel" style={{ marginBottom: 16 }}>
+        <div className="panel-title">
+          <FileCode size={16} /> Base de données (fichier SQL)
+        </div>
+        <p style={{ margin: '0 0 14px', color: 'var(--text-secondary)', fontSize: 13 }}>
+          Sauvegarde complète de la base au format SQL : structure et données de toutes les tables.
+          Le fichier peut être restauré ici même ou rejoué avec l'outil en ligne de commande <code>sqlite3</code>.
+        </p>
+        <div className="backup-actions">
+          <button className="btn btn-primary" onClick={handleExportSql} disabled={!!busy}>
+            <Download size={15} />
+            {busy === 'export-sql' && <span className="spinner" />}
+            Exporter en SQL
+          </button>
+          <button className="btn btn-ghost" onClick={() => sqlFileRef.current.click()} disabled={!!busy}>
+            <Upload size={15} /> Importer un fichier SQL…
+          </button>
+          <input ref={sqlFileRef} type="file" accept=".sql,text/plain" style={{ display: 'none' }} onChange={onSqlFileChosen} />
+        </div>
+      </div>
+
       <div className="panel">
         <div className="panel-title">
           <FileSpreadsheet size={16} /> Restaurer après incident
@@ -122,6 +180,17 @@ export default function Backup() {
           loading={importing}
           onCancel={() => setConfirmFile(null)}
           onConfirm={handleImport}
+        />
+      )}
+
+      {confirmSqlFile && (
+        <ConfirmDialog
+          title="Restaurer la base depuis un fichier SQL ?"
+          message={`Le fichier « ${confirmSqlFile.name} » va remplacer l'intégralité de la base de données (toutes les tables). Confirmez-vous la restauration ?`}
+          confirmLabel="Restaurer"
+          loading={importingSql}
+          onCancel={() => setConfirmSqlFile(null)}
+          onConfirm={handleImportSql}
         />
       )}
     </div>
