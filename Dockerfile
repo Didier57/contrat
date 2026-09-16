@@ -17,6 +17,8 @@ COPY --from=frontend /app/frontend/dist ./frontend/dist
 ENV NODE_ENV=production
 ENV PORT=3002
 ENV TZ=Europe/Paris
+# Nécessaire pour l'authentification NTLM de la lib SMB (DES-ECB / MD4)
+ENV NODE_OPTIONS=--openssl-legacy-provider
 EXPOSE 3002
 
 WORKDIR /app/backend

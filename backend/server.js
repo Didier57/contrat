@@ -5,6 +5,15 @@ const fs = require('fs');
 const config = require('./config');
 const { seed, ensureDefaultAdmin } = require('./seed');
 const { sendDueExpiryReminders } = require('./mailer');
+const { runDueBackup } = require('./smb-backup');
+
+// Garde-fous : une librairie tierce (SMB, etc.) ne doit jamais tuer le serveur
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err && err.stack ? err.stack : err);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[unhandledRejection]', err && err.stack ? err.stack : err);
+});
 
 seed();
 ensureDefaultAdmin();
@@ -54,3 +63,10 @@ setInterval(() => {
     console.error('[mailer] Échec rappel quotidien :', err.message)
   );
 }, 60 * 60 * 1000);
+
+// Sauvegarde automatique SMB : vérification toutes les 15 minutes.
+setInterval(() => {
+  runDueBackup().catch((err) =>
+    console.error('[smb] Échec sauvegarde automatique :', err.message)
+  );
+}, 15 * 60 * 1000);
