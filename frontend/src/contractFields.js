@@ -1,4 +1,4 @@
-// Métadonnées des 46 colonnes du contrat (miroir de backend/contract-fields.js).
+// Métadonnées des 48 colonnes du contrat (miroir de backend/contract-fields.js).
 // type : 'text' | 'date' (YYYY-MM-DD) | 'int' | 'real'
 
 export const FIELDS = [
@@ -45,6 +45,7 @@ export const FIELDS = [
   { key: 'remarks_bac_2', label: 'Contact Client', type: 'text' },
   { key: 'contract_stop', label: 'Contract Stop', type: 'int', bool: true },
   { key: 'contract_stop_date', label: 'Contract Stop Date', type: 'date' },
+  { key: 'id_customer', label: 'IDCustomer', type: 'text' },
   { key: 'remote', label: 'Remote', type: 'int' },
   { key: 'date_remote', label: 'Date Remote', type: 'date' },
   { key: 'dlu_p', label: 'DLU-P', type: 'text' },

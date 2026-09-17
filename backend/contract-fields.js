@@ -1,4 +1,4 @@
-// Métadonnées des 46 colonnes du fichier Excel modèle (feuillet « A » de Contract1.xlsx).
+// Métadonnées des 48 colonnes du fichier Excel modèle (feuillet « A » de Contract1.xlsx).
 // Source unique pour : le schéma SQLite, l'import Excel, les routes, l'export et le frontend.
 //
 // type : 'text' | 'date' (YYYY-MM-DD) | 'int' | 'real'

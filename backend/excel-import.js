@@ -1,16 +1,11 @@
 const XLSX = require('xlsx');
 const { FIELDS } = require('./contract-fields');
 
-const FIELD_BY_LABEL = new Map(FIELDS.map((f) => [f.label, f]));
-// Certains en-têtes du fichier réel diffèrent légèrement du modèle → alias tolérés.
-const LABEL_ALIASES = {
-  'Product Group': 'Product_group',
-  'Customer Group': 'Customer group',
-  'Remarks Bac': 'Remarks bac',
-  'Remarks Bac 2': 'Remarks bac 2',
-  'Product_group ': 'Product_group',
-  'Customer Name ': 'Customer Name'
-};
+// Un en-tête est comparé de façon tolérante : casse, espaces, « _ » et « - » ignorés.
+// Ex. « Product Group » = « Product_group », « DLU P » = « DLU-P ».
+function normalizeHeader(s) {
+  return trim(s).toLowerCase().replace(/[\s_-]+/g, '');
+}
 
 function trim(s) {
   return String(s == null ? '' : s).replace(/\u00a0/g, ' ').trim();
@@ -78,14 +73,12 @@ const NORMALIZERS = {
 
 function resolveIndex(headers) {
   const index = new Map();
-  headers.forEach((h, i) => index.set(trim(h), i));
+  headers.forEach((h, i) => {
+    const key = normalizeHeader(h);
+    if (key && !index.has(key)) index.set(key, i);
+  });
   return (label) => {
-    let key = label;
-    if (!index.has(key)) {
-      const aliased = LABEL_ALIASES[label];
-      if (aliased) key = aliased;
-      else return -1;
-    }
+    const key = normalizeHeader(label);
     return index.has(key) ? index.get(key) : -1;
   };
 }
