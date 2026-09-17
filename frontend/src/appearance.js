@@ -67,11 +67,14 @@ export function formFieldOrder(appearance) {
   return out;
 }
 
-export function isFullWidth(appearance, key) {
+export function fieldWidth(appearance, key) {
   const w = appearance && appearance.form_width ? appearance.form_width[key] : undefined;
-  if (w === 'full') return true;
-  if (w === 'half') return false;
-  return DEFAULT_FULL_WIDTH.includes(key);
+  if (w === 'full' || w === 'half' || w === 'quarter') return w;
+  return DEFAULT_FULL_WIDTH.includes(key) ? 'full' : 'half';
+}
+
+export function isFullWidth(appearance, key) {
+  return fieldWidth(appearance, key) === 'full';
 }
 
 function cssVars(obj) {

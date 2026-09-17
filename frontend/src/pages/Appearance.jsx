@@ -8,7 +8,7 @@ import {
   DEFAULT_APPEARANCE,
   normalizeAppearance,
   formFieldOrder,
-  isFullWidth,
+  fieldWidth,
   useAppearance
 } from '../appearance.js';
 
@@ -208,9 +208,10 @@ export default function Appearance() {
                   <GripVertical size={14} className="appearance-grip" />
                   <span className="appearance-field-label">{LABELS[key] || key}</span>
                   <select
-                    value={isFullWidth(form, key) ? 'full' : 'half'}
+                    value={fieldWidth(form, key)}
                     onChange={(e) => setWidth(key, e.target.value)}
                   >
+                    <option value="quarter">1/4</option>
                     <option value="half">Demi</option>
                     <option value="full">Pleine</option>
                   </select>

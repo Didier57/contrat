@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { FIELDS } from '../contractFields.js';
-import { useAppearance, formFieldOrder, isFullWidth } from '../appearance.js';
+import { useAppearance, formFieldOrder, fieldWidth } from '../appearance.js';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const CONTRACT_TYPES = ['Maintenance', 'Rental', 'Managed Services'];
@@ -23,7 +23,11 @@ export default function ContractForm({ contract, onClose, onSaved }) {
     () => formFieldOrder(appearance).map((k) => FIELDS.find((f) => f.key === k)).filter(Boolean),
     [appearance]
   );
-  const fullOf = (k) => (k === 'remarks_bac' ? true : isFullWidth(appearance, k));
+  const fieldClass = (k) => {
+    if (k === 'remarks_bac') return 'full';
+    const w = fieldWidth(appearance, k);
+    return w === 'quarter' ? 'w-quarter' : w === 'full' ? 'full' : '';
+  };
   const [form, setForm] = useState(() => {
     const init = {};
     for (const f of FIELDS) {
@@ -142,7 +146,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
           <button className="close-btn" onClick={onClose}>&times;</button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div className="modal-body">
+          <div className="modal-body contract-form-body">
             {error && <div className="error-banner full">{error}</div>}
             {fields.map((f) => {
               if (f.key === 'remarks_bac') {
@@ -212,7 +216,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
               }
               const blank = form[f.key] === '' || form[f.key] == null || form[f.key] === 0;
               return (
-                <div className={`field ${fullOf(f.key) ? 'full' : ''}`} key={f.key}>
+                <div className={`field ${fieldClass(f.key)}`.trim()} key={f.key}>
                   <label>{f.label}{f.key === 'customer_name' ? ' *' : ''}</label>
                   {MULTILINE.includes(f.key) ? (
                     <textarea

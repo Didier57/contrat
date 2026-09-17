@@ -997,6 +997,25 @@ table.table td .badge {
 
 .modal-body .full { grid-column: 1 / -1; }
 
+/* Disposition personnalisable du formulaire de contrat : pleine / demi / quart */
+.contract-form-body {
+  grid-template-columns: repeat(4, 1fr);
+}
+.contract-form-body .field {
+  grid-column: span 2;
+}
+.contract-form-body .field.full {
+  grid-column: 1 / -1;
+}
+.contract-form-body .field.w-quarter {
+  grid-column: span 1;
+}
+@media (max-width: 1000px) {
+  .contract-form-body {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* ==== Modal de confirmation ==== */
 .confirm-overlay {
   display: flex;
