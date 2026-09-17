@@ -5,7 +5,7 @@ import { useAppearance, formFieldOrder, fieldWidth } from '../appearance.js';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const CONTRACT_TYPES = ['Maintenance', 'Rental', 'Managed Services'];
-const MULTILINE = ['remarks_bac_2'];
+const MULTILINE = ['remarks_bac_2', 'special_conditions'];
 
 function formatDateTime(dt) {
   if (!dt) return '';
