@@ -9,7 +9,7 @@ services:
       - JWT_SECRET=${JWT_SECRET:-change-me-avec-une-longue-cle-secrete}
       - PORT=3002
       - DB_PATH=/data/contrats.db
-      - TZ=Europe/Paris
+      - TZ=Europe/Luxembourg
     volumes:
       # Chemin absolu du dossier de données sur le NAS (contient la BDD)
       - ${DATA_DIR:-/volume1/docker/contrat-app/data}:/data

@@ -16,7 +16,12 @@ COPY --from=frontend /app/frontend/dist ./frontend/dist
 
 ENV NODE_ENV=production
 ENV PORT=3002
-ENV TZ=Europe/Paris
+# Fuseau horaire (tzdata requis : l'image slim ne l'inclut pas, sinon TZ est ignoré)
+ENV TZ=Europe/Luxembourg
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends tzdata \
+  && ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone \
+  && rm -rf /var/lib/apt/lists/*
 # Nécessaire pour l'authentification NTLM de la lib SMB (DES-ECB / MD4)
 ENV NODE_OPTIONS=--openssl-legacy-provider
 EXPOSE 3002
