@@ -214,6 +214,7 @@ export default function Appearance() {
                     <option value="quarter">1/4</option>
                     <option value="half">Demi</option>
                     <option value="full">Pleine</option>
+                    <option value="hidden">Masquer</option>
                   </select>
                 </div>
               ))}

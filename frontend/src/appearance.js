@@ -69,7 +69,7 @@ export function formFieldOrder(appearance) {
 
 export function fieldWidth(appearance, key) {
   const w = appearance && appearance.form_width ? appearance.form_width[key] : undefined;
-  if (w === 'full' || w === 'half' || w === 'quarter') return w;
+  if (w === 'full' || w === 'half' || w === 'quarter' || w === 'hidden') return w;
   return DEFAULT_FULL_WIDTH.includes(key) ? 'full' : 'half';
 }
 

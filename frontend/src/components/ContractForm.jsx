@@ -149,6 +149,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
           <div className="modal-body contract-form-body">
             {error && <div className="error-banner full">{error}</div>}
             {fields.map((f) => {
+              if (fieldWidth(appearance, f.key) === 'hidden') return null;
               if (f.key === 'remarks_bac') {
                 if (!isEdit) {
                   return (
