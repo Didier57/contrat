@@ -49,7 +49,9 @@ const FIELDS = [
   { field: 'contract_stop_date', label: 'Contract Stop Date', type: 'date' },
   { field: 'id_customer', label: 'IDCustomer', type: 'text' },
   { field: 'remote', label: 'Remote', type: 'int' },
-  { field: 'date_remote', label: 'Date Remote', type: 'date' }
+  { field: 'date_remote', label: 'Date Remote', type: 'date' },
+  { field: 'dlu_p', label: 'DLU-P', type: 'text' },
+  { field: 'dlu_v', label: 'DLU-V', type: 'text' }
 ];
 
 const FIELD_NAMES = FIELDS.map((f) => f.field);

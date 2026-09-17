@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { api } from '../api.js';
 import { FIELDS } from '../contractFields.js';
-import { useAppearance, formFieldOrder, fieldWidth } from '../appearance.js';
+import { useAppearance, formFieldOrder, fieldWidth, fieldLabel } from '../appearance.js';
 import { Pencil, Trash2, Plus } from 'lucide-react';
 
 const CONTRACT_TYPES = ['Maintenance', 'Rental', 'Managed Services'];
@@ -139,7 +139,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay">
       <div className="modal modal-lg" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>{isEdit ? 'Modifier le contrat' : 'Ajouter un contrat'}</h3>
@@ -154,7 +154,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                 if (!isEdit) {
                   return (
                     <div className="field full" key={f.key}>
-                      <label>{f.label}</label>
+                      <label>{fieldLabel(appearance, f.key, f.label)}</label>
                       <textarea
                         rows={3}
                         value={form[f.key] ?? ''}
@@ -167,7 +167,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
                 return (
                   <div className="field full" key={f.key}>
                     <div className="remarks-head">
-                      <label>{f.label} <span className="muted">(dernier commentaire affiché dans la table)</span></label>
+                      <label>{fieldLabel(appearance, f.key, f.label)} <span className="muted">(dernier commentaire affiché dans la table)</span></label>
                       <button
                         type="button"
                         className="btn btn-xs btn-ghost"
@@ -218,7 +218,7 @@ export default function ContractForm({ contract, onClose, onSaved }) {
               const blank = form[f.key] === '' || form[f.key] == null || form[f.key] === 0;
               return (
                 <div className={`field ${fieldClass(f.key)}`.trim()} key={f.key}>
-                  <label>{f.label}{f.key === 'customer_name' ? ' *' : ''}</label>
+                  <label>{fieldLabel(appearance, f.key, f.label)}{f.key === 'customer_name' ? ' *' : ''}</label>
                   {MULTILINE.includes(f.key) ? (
                     <textarea
                       rows={3}

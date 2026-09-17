@@ -18,12 +18,15 @@ function initSelection(current) {
   return sel.length ? sel : DEFAULT_VISIBLE.filter((k) => k !== PINNED);
 }
 
-export default function ColumnsPicker({ current, onClose, onApply }) {
+export default function ColumnsPicker({ current, onClose, onApply, labels }) {
   const [selected, setSelected] = useState(() => initSelection(current));
   const [order, setOrder] = useState(() => defaultOrder(initSelection(current)));
   const dragIndex = useRef(null);
 
-  const byKey = useMemo(() => Object.fromEntries(FIELDS.map((f) => [f.key, f])), []);
+  const byKey = useMemo(
+    () => Object.fromEntries(FIELDS.map((f) => [f.key, { ...f, label: (labels && labels[f.key]) || f.label }])),
+    [labels]
+  );
 
   function toggle(key) {
     setSelected((s) => (s.includes(key) ? s.filter((k) => k !== key) : [...s, key]));

@@ -1607,6 +1607,17 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
   white-space: nowrap;
 }
 
+.appearance-label-input {
+  flex: 0 1 180px;
+  min-width: 90px;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 12px;
+}
+
 .appearance-field-row select {
   flex: 0 0 auto;
   padding: 4px 6px;

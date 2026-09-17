@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
+import { useAppearance, fieldLabel, fieldLabels } from '../appearance.js';
 import { formatDate, daysUntil } from '../utils.js';
 import { FIELDS, DEFAULT_WIDTHS, DEFAULT_VISIBLE } from '../contractFields.js';
 import ContractForm from '../components/ContractForm.jsx';
@@ -49,6 +50,7 @@ function normalizeLegacyColumns(list) {
 
 export default function Contrats() {
   const { user } = useAuth();
+  const { appearance } = useAppearance();
   const canEdit = user?.role === 'admin' || user?.role === 'editeur';
   const canDelete = user?.role === 'admin';
 
@@ -65,11 +67,11 @@ export default function Contrats() {
   });
   const prefsRef = useRef({});
   const COLUMNS = useMemo(() => {
-    const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, f]));
+    const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, { ...f, label: fieldLabel(appearance, f.key, f.label) }]));
     // Customer Name est ancrée en première colonne, juste après Actions.
     const rest = visible.filter((k) => k !== 'customer_name').map((k) => byKey[k]).filter(Boolean);
     return [byKey.customer_name, ...rest];
-  }, [visible]);
+  }, [visible, appearance]);
 
   function persistColumns(next) {
     prefsRef.current = { ...prefsRef.current, columns: next };
@@ -577,7 +579,7 @@ export default function Contrats() {
         />
       )}
       {pickerOpen && (
-        <ColumnsPicker current={visible} onClose={() => setPickerOpen(false)} onApply={onColumnsApply} />
+          <ColumnsPicker current={visible} onClose={() => setPickerOpen(false)} onApply={onColumnsApply} labels={fieldLabels(appearance)} />
       )}
       {editing && canEdit && (
         <ContractForm

@@ -42,6 +42,7 @@ export const DEFAULT_APPEARANCE = {
   colors_dark: {},
   form_order: FIELD_KEYS.slice(),
   form_width: {},
+  field_labels: {},
 };
 
 export function normalizeAppearance(raw) {
@@ -56,7 +57,18 @@ export function normalizeAppearance(raw) {
     colors_dark: src.colors_dark && typeof src.colors_dark === 'object' ? { ...src.colors_dark } : {},
     form_order: order,
     form_width: src.form_width && typeof src.form_width === 'object' ? { ...src.form_width } : {},
+    field_labels: normalizeLabels(src.field_labels),
   };
+}
+
+function normalizeLabels(raw) {
+  const out = {};
+  if (raw && typeof raw === 'object') {
+    for (const [k, v] of Object.entries(raw)) {
+      if (FIELD_KEYS.includes(k) && typeof v === 'string' && v.trim()) out[k] = v.trim();
+    }
+  }
+  return out;
 }
 
 export function formFieldOrder(appearance) {
@@ -75,6 +87,18 @@ export function fieldWidth(appearance, key) {
 
 export function isFullWidth(appearance, key) {
   return fieldWidth(appearance, key) === 'full';
+}
+
+export function fieldLabel(appearance, key, fallback) {
+  const custom = appearance && appearance.field_labels ? appearance.field_labels[key] : undefined;
+  if (typeof custom === 'string' && custom.trim()) return custom.trim();
+  return fallback;
+}
+
+export function fieldLabels(appearance) {
+  const out = {};
+  for (const f of FIELDS) out[f.key] = fieldLabel(appearance, f.key, f.label);
+  return out;
 }
 
 function cssVars(obj) {

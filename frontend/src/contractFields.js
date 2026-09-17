@@ -46,7 +46,9 @@ export const FIELDS = [
   { key: 'contract_stop', label: 'Contract Stop', type: 'int', bool: true },
   { key: 'contract_stop_date', label: 'Contract Stop Date', type: 'date' },
   { key: 'remote', label: 'Remote', type: 'int' },
-  { key: 'date_remote', label: 'Date Remote', type: 'date' }
+  { key: 'date_remote', label: 'Date Remote', type: 'date' },
+  { key: 'dlu_p', label: 'DLU-P', type: 'text' },
+  { key: 'dlu_v', label: 'DLU-V', type: 'text' }
 ];
 
 const WIDE = ['special_conditions', 'remarks_bac', 'remarks_bac_2'];

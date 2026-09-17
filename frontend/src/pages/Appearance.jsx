@@ -77,6 +77,13 @@ export default function Appearance() {
     });
   const setWidth = (key, value) =>
     setForm((f) => ({ ...f, form_width: { ...f.form_width, [key]: value } }));
+  const setLabel = (key, value) =>
+    setForm((f) => {
+      const next = { ...f.field_labels };
+      if (value && value.trim()) next[key] = value;
+      else delete next[key];
+      return { ...f, field_labels: next };
+    });
 
   function move(from, to) {
     if (to < 0 || to >= form.form_order.length || from === to) return;
@@ -207,6 +214,14 @@ export default function Appearance() {
                 >
                   <GripVertical size={14} className="appearance-grip" />
                   <span className="appearance-field-label">{LABELS[key] || key}</span>
+                  <input
+                    className="appearance-label-input"
+                    type="text"
+                    value={form.field_labels[key] || ''}
+                    onChange={(e) => setLabel(key, e.target.value)}
+                    placeholder={LABELS[key] || key}
+                    title="Nom affiché dans la table et le formulaire (n'affecte pas la base de données)"
+                  />
                   <select
                     value={fieldWidth(form, key)}
                     onChange={(e) => setWidth(key, e.target.value)}

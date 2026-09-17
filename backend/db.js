@@ -119,6 +119,15 @@ if (!userCols.some((c) => c.name === 'last_login')) {
 // Notes Remarks Bac : chaque remarque existante (colonne legacy remarks_bac)
 // devient une note « sans date » dans contract_remarks (1 note par ligne).
 // Idempotent : rejoué à chaque démarrage, ne reconstruit que si le contenu a changé.
+// Migration : ajoute les colonnes manquantes de la table contracts (champ ajouté plus tard)
+const contractCols = db.prepare('PRAGMA table_info(contracts)').all();
+const contractColNames = new Set(contractCols.map((c) => c.name));
+for (const name of FIELD_NAMES) {
+  if (!contractColNames.has(name)) {
+    db.exec(`ALTER TABLE contracts ADD COLUMN "${name}" TEXT`);
+  }
+}
+
 function migrateLegacyRemarks() {
   const rows = db.prepare(
     `SELECT id, remarks_bac FROM contracts
