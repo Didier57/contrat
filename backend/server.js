@@ -31,6 +31,7 @@ app.use('/api/users', require('./routes/users'));
 app.use('/api/settings', require('./routes/settings'));
 app.use('/api/backup', require('./routes/backup'));
 app.use('/api/activity', require('./routes/activity'));
+app.use('/api/appearance', require('./routes/appearance'));
 
 // Santé
 app.get('/api/health', (req, res) => res.json({ ok: true }));

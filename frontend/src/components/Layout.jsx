@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet } from 'react-router-dom';
-import { LayoutDashboard, FileSignature, UserCog, Settings, UserCircle, LogOut, DatabaseBackup, Sun, Moon } from 'lucide-react';
+import { LayoutDashboard, FileSignature, UserCog, Settings, UserCircle, LogOut, DatabaseBackup, Sun, Moon, Palette } from 'lucide-react';
 import { useAuth } from '../App.jsx';
+import { useAppearance } from '../appearance.js';
 import ProfileModal from './ProfileModal.jsx';
 
 const THEME_KEY = 'contrat-theme';
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const { appearance } = useAppearance();
   const isAdmin = user?.role === 'admin';
   const [profileOpen, setProfileOpen] = useState(false);
   const [theme, setTheme] = useState(() => (localStorage.getItem(THEME_KEY) === 'dark' ? 'dark' : 'light'));
@@ -21,7 +23,7 @@ export default function Layout() {
     <div className="layout">
       <header className="topbar">
         <div className="topbar-brand">
-          <span role="img" aria-label="logo">📝</span> Contrats
+          <span className="topbar-logo" role="img" aria-label="logo">{appearance.logo || '📝'}</span> {appearance.app_name || 'Contrats'}
         </div>
         <nav className="topbar-nav">
           <NavLink to="/" end>
@@ -43,6 +45,11 @@ export default function Layout() {
           {isAdmin && (
             <NavLink to="/backup">
               <DatabaseBackup size={16} /> Sauvegarde
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink to="/appearance">
+              <Palette size={16} /> Apparence
             </NavLink>
           )}
         </nav>

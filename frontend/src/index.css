@@ -1498,6 +1498,112 @@ table.table tr.cell-muted td b { color: var(--muted); font-weight: 600; }
 [data-theme="dark"] .toast { border: 1px solid var(--border); }
 
 /* Bouton bascule clair/sombre */
+.topbar-logo {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.appearance-colors {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px 18px;
+  margin-bottom: 6px;
+}
+
+.appearance-color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.appearance-color input[type="color"] {
+  width: 34px;
+  height: 26px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.appearance-color-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.appearance-clear {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.appearance-clear:hover {
+  color: var(--danger);
+}
+
+.appearance-fields {
+  max-height: 420px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 12px;
+}
+
+.appearance-field-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  cursor: grab;
+  user-select: none;
+  background: var(--surface);
+}
+
+.appearance-field-row:last-child {
+  border-bottom: none;
+}
+
+.appearance-field-row:hover {
+  background: var(--bg-hover);
+}
+
+.appearance-grip {
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+
+.appearance-field-label {
+  flex: 1 1 auto;
+  font-size: 13px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.appearance-field-row select {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-3);
+  color: var(--text);
+  font-size: 12px;
+}
+
+.appearance-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
 .theme-toggle {
   display: inline-flex;
   align-items: center;

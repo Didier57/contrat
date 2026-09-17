@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { Navigate, Routes, Route, useLocation } from 'react-router-dom';
-import { getStoredUser, clearSession } from './api';
+import { getStoredUser, clearSession, api } from './api';
+import { AppearanceContext, DEFAULT_APPEARANCE, normalizeAppearance, applyAppearance } from './appearance.js';
 import Login from './pages/Login.jsx';
 import ResetPassword from './pages/ResetPassword.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -8,6 +9,7 @@ import Contrats from './pages/Contrats.jsx';
 import Users from './pages/Users.jsx';
 import Settings from './pages/Settings.jsx';
 import Backup from './pages/Backup.jsx';
+import Appearance from './pages/Appearance.jsx';
 import Layout from './components/Layout.jsx';
 
 const AuthContext = createContext(null);
@@ -27,6 +29,24 @@ function RequireAdmin({ children }) {
 
 export default function App() {
   const [user, setUser] = useState(getStoredUser());
+  const [appearance, setAppearance] = useState(DEFAULT_APPEARANCE);
+
+  useEffect(() => {
+    if (!user) return;
+    api.get('/appearance')
+      .then((data) => {
+        const a = normalizeAppearance(data);
+        applyAppearance(a);
+        setAppearance(a);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  const updateAppearance = (a) => {
+    const n = normalizeAppearance(a);
+    applyAppearance(n);
+    setAppearance(n);
+  };
 
   const login = (u) => setUser(u);
   const logout = () => {
@@ -52,16 +72,19 @@ export default function App() {
 
   return (
     <AuthContext.Provider value={{ user, login, logout, updateUser }}>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/contrats" element={<Contrats />} />
-          <Route path="/users" element={<RequireAdmin><Users /></RequireAdmin>} />
-          <Route path="/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
-          <Route path="/backup" element={<RequireAdmin><Backup /></RequireAdmin>} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppearanceContext.Provider value={{ appearance, updateAppearance }}>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/contrats" element={<Contrats />} />
+            <Route path="/users" element={<RequireAdmin><Users /></RequireAdmin>} />
+            <Route path="/settings" element={<RequireAdmin><Settings /></RequireAdmin>} />
+            <Route path="/appearance" element={<RequireAdmin><Appearance /></RequireAdmin>} />
+            <Route path="/backup" element={<RequireAdmin><Backup /></RequireAdmin>} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </AppearanceContext.Provider>
     </AuthContext.Provider>
   );
 }
