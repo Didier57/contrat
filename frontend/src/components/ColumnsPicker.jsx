@@ -1,26 +1,30 @@
 import React, { useMemo, useRef, useState } from 'react';
 import { GripVertical, Pin } from 'lucide-react';
 import { FIELDS, DEFAULT_VISIBLE } from '../contractFields.js';
+import { fieldWidth, useAppearance } from '../appearance.js';
 
 // Customer Name est ancrée en tête de table : elle n'est pas réordonnable ici.
 const PINNED = 'customer_name';
 
 // Ordre par défaut : colonnes visibles d'abord (dans leur ordre), puis les autres.
-function defaultOrder(selected) {
-  const all = FIELDS.map((f) => f.key).filter((k) => k !== PINNED);
+function defaultOrder(selected, isHidden = () => false) {
+  const all = FIELDS.map((f) => f.key).filter((k) => k !== PINNED && !isHidden(k));
   const first = (selected || []).filter((k) => all.includes(k));
   return [...new Set([...first, ...all])];
 }
 
-function initSelection(current) {
+function initSelection(current, isHidden = () => false) {
   const base = Array.isArray(current) && current.length ? current : DEFAULT_VISIBLE;
-  const sel = [...new Set(base)].filter((k) => k !== PINNED);
-  return sel.length ? sel : DEFAULT_VISIBLE.filter((k) => k !== PINNED);
+  const sel = [...new Set(base)].filter((k) => k !== PINNED && !isHidden(k));
+  const fallback = DEFAULT_VISIBLE.filter((k) => k !== PINNED && !isHidden(k));
+  return sel.length ? sel : fallback;
 }
 
 export default function ColumnsPicker({ current, onClose, onApply, labels }) {
-  const [selected, setSelected] = useState(() => initSelection(current));
-  const [order, setOrder] = useState(() => defaultOrder(initSelection(current)));
+  const { appearance } = useAppearance();
+  const isHidden = (key) => fieldWidth(appearance, key) === 'hidden';
+  const [selected, setSelected] = useState(() => initSelection(current, isHidden));
+  const [order, setOrder] = useState(() => defaultOrder(initSelection(current, isHidden), isHidden));
   const dragIndex = useRef(null);
 
   const byKey = useMemo(
@@ -52,17 +56,18 @@ export default function ColumnsPicker({ current, onClose, onApply, labels }) {
   }
 
   function reset() {
-    setSelected(initSelection(DEFAULT_VISIBLE));
-    setOrder(defaultOrder(DEFAULT_VISIBLE));
+    setSelected(initSelection(DEFAULT_VISIBLE, isHidden));
+    setOrder(defaultOrder(DEFAULT_VISIBLE, isHidden));
   }
 
   function apply() {
-    const next = [PINNED, ...order.filter((k) => selected.includes(k))];
+    const cols = order.filter((k) => selected.includes(k) && !isHidden(k));
+    const next = isHidden(PINNED) ? cols : [PINNED, ...cols];
     onApply(next);
     onClose();
   }
 
-  const count = selected.length + 1;
+  const count = selected.filter((k) => !isHidden(k)).length + (isHidden(PINNED) ? 0 : 1);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -76,16 +81,18 @@ export default function ColumnsPicker({ current, onClose, onApply, labels }) {
           Vos préférences sont enregistrées sur votre compte.
         </div>
         <div className="col-picker-body">
-          <div className="col-picker-row col-picker-row-locked" title="Colonne ancrée — toujours visible">
-            <Pin size={13} className="col-picker-grip" />
-            <label>
-              <input type="checkbox" checked disabled />
-              <span>{byKey[PINNED].label}</span>
-            </label>
-          </div>
+          {!isHidden(PINNED) && (
+            <div className="col-picker-row col-picker-row-locked" title="Colonne ancrée — toujours visible">
+              <Pin size={13} className="col-picker-grip" />
+              <label>
+                <input type="checkbox" checked disabled />
+                <span>{byKey[PINNED].label}</span>
+              </label>
+            </div>
+          )}
           {order.map((key, i) => {
             const f = byKey[key];
-            if (!f) return null;
+            if (!f || isHidden(key)) return null;
             const isSel = selected.includes(key);
             return (
               <div

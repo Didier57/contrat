@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { api } from '../api.js';
 import { useAuth } from '../App.jsx';
-import { useAppearance, fieldLabel, fieldLabels } from '../appearance.js';
+import { useAppearance, fieldLabel, fieldLabels, fieldWidth } from '../appearance.js';
 import { formatDate, daysUntil } from '../utils.js';
 import { FIELDS, DEFAULT_WIDTHS, DEFAULT_VISIBLE } from '../contractFields.js';
 import ContractForm from '../components/ContractForm.jsx';
@@ -68,9 +68,12 @@ export default function Contrats() {
   const prefsRef = useRef({});
   const COLUMNS = useMemo(() => {
     const byKey = Object.fromEntries(FIELDS.map((f) => [f.key, { ...f, label: fieldLabel(appearance, f.key, f.label) }]));
-    // Customer Name est ancrée en première colonne, juste après Actions.
-    const rest = visible.filter((k) => k !== 'customer_name').map((k) => byKey[k]).filter(Boolean);
-    return [byKey.customer_name, ...rest];
+    // Les champs masqués dans Apparence n'apparaissent jamais dans la table.
+    const vis = visible.filter((k) => byKey[k] && fieldWidth(appearance, k) !== 'hidden');
+    // Customer Name est ancrée en première colonne, juste après Actions (sauf si masquée).
+    const rest = vis.filter((k) => k !== 'customer_name').map((k) => byKey[k]);
+    const first = fieldWidth(appearance, 'customer_name') === 'hidden' ? [] : [byKey.customer_name];
+    return [...first, ...rest];
   }, [visible, appearance]);
 
   function persistColumns(next) {
