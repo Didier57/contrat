@@ -61,7 +61,12 @@ async function runBackup(reason) {
   const keep = getInt('smb.keep', 7);
   const pruned = await prune(cfg, keep);
   setSetting('smb.last', new Date().toISOString());
-  logAudit({ action: 'Sauvegarde SQL vers SMB', category: 'backup', target: name, detail: reason || '' });
+  logAudit({
+    action: reason === 'planifiée' ? 'Sauvegarde automatique SMB' : 'Sauvegarde SQL vers SMB',
+    category: 'backup',
+    target: name,
+    detail: reason || ''
+  });
   return { name, size: Buffer.byteLength(sql), pruned };
 }
 
@@ -96,6 +101,7 @@ async function runDueBackup() {
     return result;
   } catch (e) {
     setSetting('smb.last_result', `Échec : ${e.message}`);
+    logAudit({ action: 'Échec de la sauvegarde automatique SMB', category: 'backup', detail: e.message });
     throw e;
   }
 }
