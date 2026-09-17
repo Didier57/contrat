@@ -6,7 +6,7 @@ const { buildBackupWorkbook, importBackup, backupFilename, sqlDump, restoreSql, 
 const { sendMail, smtpConfigured } = require('../mailer');
 const { logAudit } = require('../audit');
 const { getSetting, setSetting, getBool, getInt } = require('../settings');
-const { getSmbConfig, smbConfigured, runBackup, listBackups, restoreRemote, deleteRemote } = require('../smb-backup');
+const { getSmbConfig, smbConfigured, runBackup, runDueBackup, listBackups, restoreRemote, deleteRemote } = require('../smb-backup');
 const smb = require('../smb');
 
 const router = express.Router();
@@ -115,7 +115,9 @@ router.get('/smb', (req, res) => {
     day: getInt('smb.day', 1),
     hour: getInt('smb.hour', 3),
     keep: getInt('smb.keep', 7),
-    last: getSetting('smb.last', '') || ''
+    last: getSetting('smb.last', '') || '',
+    last_check: getSetting('smb.last_check', '') || '',
+    last_result: getSetting('smb.last_result', '') || ''
   });
 });
 
@@ -129,7 +131,11 @@ router.put('/smb', (req, res) => {
   if (b.dir !== undefined) setSetting('smb.dir', String(b.dir).trim().replace(/^[\\/]+|[\\/]+$/g, ''));
   if (b.pass !== undefined && b.pass !== '') setSetting('smb.pass', String(b.pass));
   if (b.enabled !== undefined) setSetting('smb.enabled', b.enabled ? '1' : '0');
-  if (b.auto_enabled !== undefined) setSetting('smb.auto_enabled', b.auto_enabled ? '1' : '0');
+  if (b.auto_enabled !== undefined) {
+    setSetting('smb.auto_enabled', b.auto_enabled ? '1' : '0');
+    // La sauvegarde automatique implique le stockage SMB : on coche aussi l'interrupteur principal.
+    if (b.auto_enabled) setSetting('smb.enabled', '1');
+  }
   if (b.day !== undefined) setSetting('smb.day', String(Math.min(7, Math.max(0, parseInt(b.day, 10) || 0))));
   if (b.hour !== undefined) setSetting('smb.hour', String(Math.min(23, Math.max(0, parseInt(b.hour, 10) || 0))));
   if (b.keep !== undefined) setSetting('smb.keep', String(Math.min(365, Math.max(1, parseInt(b.keep, 10) || 7))));
@@ -164,6 +170,17 @@ router.post('/smb/run', async (req, res) => {
   try {
     const result = await runBackup('manuelle');
     res.json({ ok: true, ...result, message: `Sauvegarde « ${result.name} » envoyée (${result.pruned.length} ancienne(s) supprimée(s))` });
+  } catch (e) {
+    res.status(400).json({ error: `Sauvegarde impossible : ${e.message}` });
+  }
+});
+
+// POST /api/backup/smb/run-due — évalue la planification et sauvegarde si c'est dû
+router.post('/smb/run-due', async (req, res) => {
+  try {
+    const result = await runDueBackup();
+    if (result.skipped) return res.json({ ok: true, skipped: result.skipped, message: `Sauvegarde non déclenchée — ${result.skipped}` });
+    res.json({ ok: true, ...result, message: `Sauvegarde « ${result.name} » envoyée` });
   } catch (e) {
     res.status(400).json({ error: `Sauvegarde impossible : ${e.message}` });
   }

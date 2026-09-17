@@ -65,8 +65,14 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 
 // Sauvegarde automatique SMB : vérification toutes les 15 minutes.
-setInterval(() => {
-  runDueBackup().catch((err) =>
-    console.error('[smb] Échec sauvegarde automatique :', err.message)
-  );
-}, 15 * 60 * 1000);
+function checkSmbBackup() {
+  runDueBackup()
+    .then((r) => {
+      if (r && r.name) console.log('[smb] Sauvegarde automatique effectuée :', r.name);
+      else if (r && r.skipped && r.skipped !== "déjà effectuée aujourd'hui") console.log('[smb] Sauvegarde automatique ignorée :', r.skipped);
+    })
+    .catch((err) => console.error('[smb] Échec sauvegarde automatique :', err.message));
+}
+setInterval(checkSmbBackup, 15 * 60 * 1000);
+// Première vérification peu après le démarrage (si une sauvegarde est due).
+setTimeout(checkSmbBackup, 30 * 1000);

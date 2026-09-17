@@ -65,21 +65,39 @@ async function runBackup(reason) {
   return { name, size: Buffer.byteLength(sql), pruned };
 }
 
-async function runDueBackup() {
+function dueSkipReason(now) {
   const cfg = getSmbConfig();
-  if (!cfg.enabled) return { skipped: 'désactivé' };
-  if (!getBool('smb.auto_enabled', false)) return { skipped: 'sauvegarde automatique désactivée' };
-  if (!smbConfigured(cfg)) return { skipped: 'non configuré' };
-  const now = new Date();
+  if (!getBool('smb.auto_enabled', false)) return 'sauvegarde automatique désactivée';
+  if (!smbConfigured(cfg)) return 'serveur SMB non configuré (hôte et partage requis)';
   const last = String(getSetting('smb.last', '') || '');
-  const lastLocal = last ? new Date(last) : null;
-  const today = todayKey(now);
-  if (lastLocal && todayKey(lastLocal) === today) return { skipped: 'déjà effectuée aujourd\'hui' };
+  if (last) {
+    const d = new Date(last);
+    if (!isNaN(d.getTime()) && todayKey(d) === todayKey(now)) return "déjà effectuée aujourd'hui";
+  }
   const day = getInt('smb.day', 1);
+  if (day !== 7 && now.getDay() !== day) return `jour non planifié (jour serveur : ${now.getDay()}, jour réglé : ${day})`;
   const hour = getInt('smb.hour', 3);
-  if (day !== 7 && now.getDay() !== day) return { skipped: 'jour non planifié' };
-  if (now.getHours() < hour) return { skipped: 'heure non atteinte' };
-  return await runBackup('planifiée');
+  if (now.getHours() < hour) return `heure non atteinte (heure serveur : ${now.getHours()}h, heure réglée : ${hour}h)`;
+  return null;
+}
+
+async function runDueBackup() {
+  const now = new Date();
+  setSetting('smb.last_check', `${todayKey(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  const reason = dueSkipReason(now);
+  if (reason) {
+    setSetting('smb.last_result', `Ignorée : ${reason}`);
+    if (reason !== "déjà effectuée aujourd'hui") console.log('[smb] sauvegarde automatique ignorée :', reason);
+    return { skipped: reason };
+  }
+  try {
+    const result = await runBackup('planifiée');
+    setSetting('smb.last_result', `Sauvegarde effectuée : ${result.name}`);
+    return result;
+  } catch (e) {
+    setSetting('smb.last_result', `Échec : ${e.message}`);
+    throw e;
+  }
 }
 
 async function listBackups() {
@@ -107,6 +125,7 @@ async function deleteRemote(name) {
 module.exports = {
   getSmbConfig,
   smbConfigured,
+  dueSkipReason,
   runBackup,
   runDueBackup,
   listBackups,

@@ -7,6 +7,7 @@ const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Sa
 const EMPTY_SMB = {
   host: '', share: '', domain: '', user: '', dir: '',
   enabled: false, auto_enabled: false, day: 1, hour: 3, keep: 7, last: '',
+  last_check: '', last_result: '',
 };
 
 export default function Backup() {
@@ -34,21 +35,24 @@ export default function Backup() {
     setTimeout(() => setToast(''), 4500);
   }
 
+  async function loadSmbConfig() {
+    try {
+      const c = await api.get('/backup/smb');
+      setSmb({
+        host: c.host || '', share: c.share || '', domain: c.domain || '', user: c.user || '', dir: c.dir || '',
+        enabled: !!c.enabled, auto_enabled: !!c.auto_enabled,
+        day: Number.isInteger(c.day) ? c.day : 1, hour: Number.isInteger(c.hour) ? c.hour : 3,
+        keep: Number.isInteger(c.keep) ? c.keep : 7, last: c.last || '',
+        last_check: c.last_check || '', last_result: c.last_result || '',
+      });
+      setSmbPassSet(!!c.passSet);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      try {
-        const c = await api.get('/backup/smb');
-        setSmb({
-          host: c.host || '', share: c.share || '', domain: c.domain || '', user: c.user || '', dir: c.dir || '',
-          enabled: !!c.enabled, auto_enabled: !!c.auto_enabled,
-          day: Number.isInteger(c.day) ? c.day : 1, hour: Number.isInteger(c.hour) ? c.hour : 3,
-          keep: Number.isInteger(c.keep) ? c.keep : 7, last: c.last || '',
-        });
-        setSmbPassSet(!!c.passSet);
-      } catch (e) {
-        setError(e.message);
-      }
-    })();
+    loadSmbConfig();
   }, []);
 
   function setSmbField(key, value) {
@@ -96,6 +100,23 @@ export default function Backup() {
       const r = await api.post('/backup/smb/run');
       showToast(r.message || 'Sauvegarde effectuée');
       loadSmbFiles();
+      loadSmbConfig();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setSmbBusy('');
+    }
+  }
+
+  async function handleRunDue() {
+    setSmbBusy('due');
+    setError('');
+    setSmbMsg('');
+    try {
+      const r = await api.post('/backup/smb/run-due');
+      setSmbMsg(r.message || '');
+      if (r.name) loadSmbFiles();
+      loadSmbConfig();
     } catch (e) {
       setError(e.message);
     } finally {
@@ -398,10 +419,19 @@ export default function Backup() {
         </div>
         <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 12 }}>
           {smb.last ? `Dernière sauvegarde : ${smb.last.slice(0, 16).replace('T', ' ')}` : 'Aucune sauvegarde effectuée pour le moment.'}
+          {smb.last_check ? ` — Dernière vérification : ${smb.last_check}` : ''}
         </p>
+        {smb.last_result && (
+          <p style={{ margin: '4px 0 0', color: 'var(--text-secondary)', fontSize: 12 }}>
+            Résultat : {smb.last_result}
+          </p>
+        )}
         <div className="backup-actions" style={{ marginTop: 12 }}>
           <button className="btn btn-primary" onClick={handleSaveSmb} disabled={!!smbBusy}>
             <Save size={15} />{smbBusy === 'save' && <span className="spinner" />} Enregistrer
+          </button>
+          <button className="btn btn-ghost" onClick={handleRunDue} disabled={!!smbBusy}>
+            <Play size={15} />{smbBusy === 'due' && <span className="spinner" />} Vérifier la planification maintenant
           </button>
         </div>
       </div>
