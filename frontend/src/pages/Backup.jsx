@@ -175,6 +175,16 @@ export default function Backup() {
     return `${(n / 1024 / 1024).toFixed(1)} Mo`;
   }
 
+  // Affiche une date ISO (UTC) convertie en heure locale du navigateur.
+  function fmtDateTime(value) {
+    if (!value) return '—';
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleString('fr-FR', {
+      year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+    });
+  }
+
   async function handleExport() {
     setBusy('export');
     setError('');
@@ -418,7 +428,7 @@ export default function Backup() {
           </div>
         </div>
         <p style={{ margin: '10px 0 0', color: 'var(--text-secondary)', fontSize: 12 }}>
-          {smb.last ? `Dernière sauvegarde : ${smb.last.slice(0, 16).replace('T', ' ')}` : 'Aucune sauvegarde effectuée pour le moment.'}
+          {smb.last ? `Dernière sauvegarde : ${fmtDateTime(smb.last)}` : 'Aucune sauvegarde effectuée pour le moment.'}
           {smb.last_check ? ` — Dernière vérification : ${smb.last_check}` : ''}
         </p>
         {smb.last_result && (
@@ -464,7 +474,7 @@ export default function Backup() {
                 <tr key={f.name}>
                   <td>{f.name}</td>
                   <td className="nowrap">{fmtSize(f.size)}</td>
-                  <td className="nowrap">{f.mtime ? String(f.mtime).slice(0, 16).replace('T', ' ') : '—'}</td>
+                  <td className="nowrap">{f.mtime ? fmtDateTime(f.mtime) : '—'}</td>
                   <td className="nowrap">
                     <button className="btn btn-xs btn-ghost" onClick={() => setConfirmSmbRestore(f.name)} disabled={!!smbBusy} title="Restaurer cette sauvegarde"><RotateCcw size={13} /></button>
                     <button className="btn btn-xs btn-danger" onClick={() => setConfirmSmbDelete(f.name)} disabled={!!smbBusy} title="Supprimer ce fichier"><Trash2 size={13} /></button>

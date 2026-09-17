@@ -21,17 +21,42 @@ function smbConfigured(cfg) {
   return !!(cfg && cfg.host && cfg.share);
 }
 
+// Fuseau horaire de l'application (indépendant du TZ du conteneur).
+const TZ = String(process.env.TZ || 'Europe/Luxembourg');
+const DT_FMT = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TZ,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23',
+});
+const WD_FMT = new Intl.DateTimeFormat('en-US', { timeZone: TZ, weekday: 'short' });
+const WEEKDAYS = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+
 function pad(n) {
   return String(n).padStart(2, '0');
 }
 
-function todayKey(d) {
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function localParts(d) {
+  const out = {};
+  for (const p of DT_FMT.formatToParts(d)) out[p.type] = p.value;
+  return out;
+}
+
+function todayKey(d = new Date()) {
+  const p = localParts(d);
+  return `${p.year}-${p.month}-${p.day}`;
+}
+
+function localHour(d = new Date()) {
+  return Number(localParts(d).hour);
+}
+
+function localDay(d = new Date()) {
+  return WEEKDAYS[WD_FMT.format(d)];
 }
 
 function stamp() {
-  const d = new Date();
-  return `${todayKey(d)}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+  const p = localParts(new Date());
+  return `${p.year}-${p.month}-${p.day}_${p.hour}${p.minute}${p.second}`;
 }
 
 async function prune(cfg, keep) {
@@ -80,15 +105,18 @@ function dueSkipReason(now) {
     if (!isNaN(d.getTime()) && todayKey(d) === todayKey(now)) return "déjà effectuée aujourd'hui";
   }
   const day = getInt('smb.day', 1);
-  if (day !== 7 && now.getDay() !== day) return `jour non planifié (jour serveur : ${now.getDay()}, jour réglé : ${day})`;
+  const today = localDay(now);
+  if (day !== 7 && today !== day) return `jour non planifié (jour serveur : ${today}, jour réglé : ${day})`;
   const hour = getInt('smb.hour', 3);
-  if (now.getHours() < hour) return `heure non atteinte (heure serveur : ${now.getHours()}h, heure réglée : ${hour}h)`;
+  const h = localHour(now);
+  if (h < hour) return `heure non atteinte (heure serveur : ${h}h, heure réglée : ${hour}h)`;
   return null;
 }
 
 async function runDueBackup() {
   const now = new Date();
-  setSetting('smb.last_check', `${todayKey(now)} ${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  const nowParts = localParts(now);
+  setSetting('smb.last_check', `${todayKey(now)} ${pad(localHour(now))}:${pad(Number(nowParts.minute))}`);
   const reason = dueSkipReason(now);
   if (reason) {
     setSetting('smb.last_result', `Ignorée : ${reason}`);
