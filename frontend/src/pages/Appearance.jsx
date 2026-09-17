@@ -45,6 +45,12 @@ const DEFAULT_DARK = {
   '--danger': '#f87171'
 };
 
+// Regroupe les champs masqués à la fin de la liste (ordre relatif conservé).
+function hiddenLast(order, form_width) {
+  const rank = (k) => (form_width && form_width[k] === 'hidden' ? 1 : 0);
+  return [...order].sort((a, b) => rank(a) - rank(b));
+}
+
 export default function Appearance() {
   const { updateAppearance } = useAppearance();
   const [form, setForm] = useState(() => normalizeAppearance(DEFAULT_APPEARANCE));
@@ -61,7 +67,11 @@ export default function Appearance() {
 
   useEffect(() => {
     api.get('/appearance')
-      .then((data) => setForm(normalizeAppearance(data)))
+      .then((data) => {
+        const a = normalizeAppearance(data);
+        a.form_order = hiddenLast(a.form_order, a.form_width);
+        setForm(a);
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
@@ -76,7 +86,11 @@ export default function Appearance() {
       return { ...f, [theme]: next };
     });
   const setWidth = (key, value) =>
-    setForm((f) => ({ ...f, form_width: { ...f.form_width, [key]: value } }));
+    setForm((f) => {
+      const form_width = { ...f.form_width, [key]: value };
+      const form_order = value === 'hidden' ? hiddenLast(f.form_order, form_width) : f.form_order;
+      return { ...f, form_width, form_order };
+    });
   const setLabel = (key, value) =>
     setForm((f) => {
       const next = { ...f.field_labels };
